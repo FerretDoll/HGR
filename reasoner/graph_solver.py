@@ -6,12 +6,16 @@ from sympy import symbols, Eq, sympify, cos, sin, pi, solve, tan, parse_expr, Mu
 
 from reasoner.graph_matching import get_candidate_models_from_pool, match_graphs, apply_mapping_to_actions, \
     apply_mapping_to_equations
-from reasoner.config import UPPER_BOUND
+from reasoner.config import UPPER_BOUND, logger
 from utils.common_utils import isNumber, closest_to_number
 
 
 class GraphSolver:
     def __init__(self, global_graph, model_pool):
+        self.rounds = 0
+        self.target_node_values = []
+        self.answer = None
+        self.model_instance_eq_num = [0, 0, 0]
         self.global_graph = global_graph
         self.model_pool = model_pool
         self.equations = []
@@ -116,7 +120,7 @@ class GraphSolver:
                 attrs['float_value'] = [N(value) for value in attrs['value']]
             # 检查节点是否在 current_new 集合中
             prefix = '*' if node in self.current_new else ''
-            print(f"{prefix}Node {node}: {attrs}")
+            logger.debug(f"{prefix}Node {node}: {attrs}")
 
     def remove_solved_equations(self, equations):
         equation_vars = [(eq, self.equation_variables(eq)) for eq in equations]
@@ -240,29 +244,29 @@ class GraphSolver:
                 complex_equations.append(eq)
             else:
                 basic_equations.append(eq)
-        print(f"Base Equations ({len(basic_equations)}):\n{basic_equations}")
-        print(f"Complex Equations ({len(complex_equations)}):\n{complex_equations}")
+        logger.debug(f"Base Equations ({len(basic_equations)}):\n{basic_equations}")
+        logger.debug(f"Complex Equations ({len(complex_equations)}):\n{complex_equations}")
 
         base_solutions = []
         try:
             base_solutions = func_timeout(20, solve, kwargs=dict(f=basic_equations, dict=True))
         except FunctionTimedOut as e:
-            print(f"Failed to solve base equations within the time limit")
+            logger.debug(f"Failed to solve base equations within the time limit")
         except Exception as e:
-            print(f"Failed to solve base equations: {e}")
+            logger.error(f"Failed to solve base equations: {e}")
 
         if len(base_solutions) > 0:
             estimate = lambda sol: sum([str(expr)[0] != '-' for expr in sol.values()])  # negative value
             base_solution = max(base_solutions, key=estimate)
             self.init_solutions = base_solution
-            print("Base Solution:\n", base_solution)
+            logger.debug(f"Base Solution:\n{base_solution}")
 
             self.update_graph_node_values(base_solution)
 
             # 由于求解非线性方程组需要耗费大量时间，因此这里对求解算法进行优化
             # 使用列表推导式应用替换
             substituted_equations = [eq.subs(base_solution) for eq in complex_equations]
-            print("Substituted Complex Equations:", substituted_equations)
+            logger.debug(f"Substituted Complex Equations: {substituted_equations}")
 
             # 统计每个方程包含的变量数
             equation_vars = [(eq, self.equation_variables(eq)) for eq in substituted_equations]
@@ -270,7 +274,7 @@ class GraphSolver:
             knowns = {}
             solved_equations = []
             remaining_equations = substituted_equations.copy()
-            print("Start solving complex equations in step 1")
+            logger.debug("Start solving complex equations in step 1")
             # 步骤1：先求解只包含单一变量的方程
             while True:
                 single_unknown_eq = None
@@ -298,47 +302,47 @@ class GraphSolver:
                                 visual_value = self.global_graph.get_node_visual_value(str(unknown_var))
                                 knowns[unknown_var] = closest_to_number(sol, visual_value)
                     except FunctionTimedOut as e:
-                        print(f"Failed to solve complex equations within the time limit in step 1")
+                        logger.debug(f"Failed to solve complex equations within the time limit in step 1")
                     except Exception as e:
-                        print(f"Failed to solve complex equations in step 1: {e}")
+                        logger.error(f"Failed to solve complex equations in step 1: {e}")
                 else:
                     break
 
             if knowns:
-                print("Complex Solution in Step 1:", knowns)
+                logger.debug(f"Complex Solution in Step 1: {knowns}")
                 self.update_graph_node_values(knowns)
             else:
-                print("No solution found for complex equations in step 1")
+                logger.debug("No solution found for complex equations in step 1")
 
             total_added = {}
             step_2_rounds = 0
 
-            print("Start solving complex equations in step 2")
+            logger.debug("Start solving complex equations in step 2")
             while True:
                 knows_added = {}
                 groups, variables = self.find_equations_and_common_variables(equation_vars, solved_equations, knowns)
                 if len(groups) == 0:
                     break
                 step_2_rounds += 1
-                print(f"Step 2 Round {step_2_rounds}:")
+                logger.debug(f"Step 2 Round {step_2_rounds}:")
                 for i, (group, common_vars) in enumerate(zip(groups, variables), start=1):
-                    print(f"Group {i} ({common_vars}): {group}")
+                    logger.debug(f"Group {i} ({common_vars}): {group}")
                     for eq1, eq2 in combinations(group, 2):
                         try:
                             pairs = [eq1.subs(knowns), eq2.subs(knowns)]
-                            print(f"Solving equations: {pairs}")
+                            logger.debug(f"Solving equations: {pairs}")
                             sol = func_timeout(10, solve, kwargs=dict(f=pairs, dict=True))
                             sol = [s for s in sol if 0 not in s.values()]  # 暂时不考虑值为0的解
                             if len(sol) > 0:
                                 sol = max(sol, key=estimate)  # TODO 这里也许需要修改，因为通过与视觉值比较后选出最相近的一组解更合理
-                                print(f"Solution: {sol}")
+                                logger.debug(f"Solution: {sol}")
                                 for var, value in sol.items():
                                     knows_added[var] = value
                                 break
                         except FunctionTimedOut as e:
-                            print(f"Failed to solve complex equations within the time limit in step 2 (group {i})")
+                            logger.debug(f"Failed to solve complex equations within the time limit in step 2 (group {i})")
                         except Exception as e:
-                            print(f"Failed to solve complex equations in step 2 (group {i}): {e}")
+                            logger.error(f"Failed to solve complex equations in step 2 (group {i}): {e}")
 
                     # 不管group中的方程是否能求出解，都要将group中的方程都标记为已求解，避免无限循环
                     for eq in group:
@@ -350,33 +354,33 @@ class GraphSolver:
                     total_added.update(knows_added)
 
             if total_added:
-                print("Complex Solution in Step 2:", total_added)
+                logger.debug(f"Complex Solution in Step 2: {total_added}")
                 self.update_graph_node_values(total_added)
             else:
-                print("No solution found for complex equations in step 2")
+                logger.debug("No solution found for complex equations in step 2")
 
             # 步骤3：将所有解代入剩余方程组统一求解
             if len(remaining_equations) > 0:
-                print("Start solving complex equations in step 3")
+                logger.debug("Start solving complex equations in step 3")
                 remaining_solutions = []
                 try:
                     substitutions = [func_timeout(10, eq.subs, args=(knowns,)) for eq in remaining_equations]
                     remaining_solutions = func_timeout(20, solve, kwargs=dict(f=substitutions, dict=True))
                 except FunctionTimedOut as e:
-                    print(f"Failed to solve complex equations within the time limit in step 3")
+                    logger.debug(f"Failed to solve complex equations within the time limit in step 3")
                 except Exception as e:
-                    print(f"Failed to solve complex equations in step 3: {e}")
+                    logger.error(f"Failed to solve complex equations in step 3: {e}")
 
                 if len(remaining_solutions) > 0:
                     remaining_solutions = max(remaining_solutions, key=estimate)
-                    print("Complex Solution in Step 3:", remaining_solutions)
+                    logger.debug(f"Complex Solution in Step 3: {remaining_solutions}")
                     self.update_graph_node_values(remaining_solutions)
                 else:
-                    print("No solution found for complex equations in step 3")
+                    logger.debug("No solution found for complex equations in step 3")
 
             self.print_node_value()
         else:
-            print("No solution found for base equations")
+            logger.debug("No solution found for base equations")
 
     def execute_actions(self, action_list):
         """根据模型匹配的结果执行预设的动作"""
@@ -410,11 +414,10 @@ class GraphSolver:
 
     def solve(self):
         if self.global_graph.target is None or len(self.global_graph.target) == 0:
-            print("No target!")
-            return None, None, None
-        print("Target Node:", self.global_graph.target)
-        print("Target Equation:", self.global_graph.target_equation)
-        rounds = 0
+            raise Exception("No target!")
+        logger.debug(f"Target Node: {self.global_graph.target}")
+        logger.debug(f"Target Equation: {self.global_graph.target_equation}")
+        self.rounds = 0
 
         self.print_node_value()
 
@@ -450,16 +453,16 @@ class GraphSolver:
                         equations.append(Eq(node_var, node_value_expr))
                     self.node_value_equations_dict[node_id] = equations
                 except Exception as e:
-                    print(f"Error parsing value '{node_value}' for node '{node_id}': {e}")
+                    logger.error(f"Error parsing value '{node_value}' for node '{node_id}': {e}")
 
         init_equations = [item for sublist in list(self.node_value_equations_dict.values()) for item in sublist]
         init_solutions = func_timeout(20, solve, kwargs=dict(f=init_equations, dict=True))
         estimate = lambda sol: sum([str(expr)[0] != '-' for expr in sol.values()])  # negative value
         self.init_solutions = max(init_solutions, key=estimate)
 
-        while self.is_updated and rounds < self.upper_bound:
-            rounds += 1
-            print("Round ", rounds)
+        while self.is_updated and self.rounds < self.upper_bound:
+            self.rounds += 1
+            logger.debug(f"Round {self.rounds}")
             self.is_updated = False
             self.equations = [item for sublist in list(self.node_value_equations_dict.values()) for item in sublist]
             action_list = []
@@ -467,12 +470,16 @@ class GraphSolver:
 
             candidate_models = get_candidate_models_from_pool(self.model_pool, self.global_graph)
             for model in candidate_models:
+                model_used = False
                 mapping_dict_list = match_graphs(model, self.global_graph, self.symbols, self.init_solutions)
                 for mapping_dict in mapping_dict_list:
                     relation = model.generate_relation(mapping_dict)
                     if relation not in self.matched_relations:
+                        if not model_used:
+                            self.model_instance_eq_num[0] += 1
+                            model_used = True
                         self.matched_relations.append(relation)
-                        print(relation)
+                        logger.debug(relation)
                         if len(model.actions) > 0:
                             new_actions = apply_mapping_to_actions(model, mapping_dict)
                             action_list.extend(new_actions)
@@ -482,21 +489,21 @@ class GraphSolver:
 
             if len(action_list) > 0:
                 self.is_updated = True
-                print("Actions List:", action_list)
+                logger.debug(f"Actions List: {action_list}")
                 self.execute_actions(action_list)
 
             if len(added_equations) > 0:
                 added_equations = list(set(added_equations))
-                print(f"Equations Added from Models ({len(added_equations)}):\n{added_equations}")
+                self.model_instance_eq_num[2] += len(added_equations)
+                logger.debug(f"Equations Added from Models ({len(added_equations)}):\n{added_equations}")
                 self.model_equations.extend(added_equations)
 
             self.equations.extend(self.model_equations)
             self.equations = list(set(self.equations))
             self.solve_equations()
 
-            target_node_values = self.check_and_evaluate_targets()
-            if len(target_node_values) > 0:
-                answer = self.replace_and_evaluate(self.global_graph.target_equation)
-                return target_node_values, answer, rounds
-
-        return None, None, rounds
+            self.target_node_values = self.check_and_evaluate_targets()
+            self.model_instance_eq_num[1] = len(self.matched_relations)
+            if len(self.target_node_values) > 0:
+                self.answer = self.replace_and_evaluate(self.global_graph.target_equation)
+                return

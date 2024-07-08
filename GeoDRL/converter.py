@@ -593,7 +593,7 @@ def Logic2Graph(logic, target):
     # <Line, Line>
     # Equal = []
     Parallel = []
-    Perpendicular = []
+    # Perpendicular = []
     # for s in logic.EqualLineSet:
         # for l1, l2 in permutations(s, 2):
             # Equal.append(('line_'+''.join(l1), 'line_'+''.join(l2)))
@@ -602,11 +602,11 @@ def Logic2Graph(logic, target):
         l2 = ''.join(sorted(l2))
         Parallel.append(('line_' + ''.join(l1), 'line_' + ''.join(l2)))
         Parallel.append(('line_' + ''.join(l2), 'line_' + ''.join(l1)))
-    for l1, l2 in logic.find_all_perpendicular():
-        l1 = ''.join(sorted(l1))
-        l2 = ''.join(sorted(l2))
-        Perpendicular.append(('line_' + ''.join(l1), 'line_' + ''.join(l2)))
-        Perpendicular.append(('line_' + ''.join(l2), 'line_' + ''.join(l1)))
+    # for l1, l2 in logic.find_all_perpendicular():
+    #     l1 = ''.join(sorted(l1))
+    #     l2 = ''.join(sorted(l2))
+    #     Perpendicular.append(('line_' + ''.join(l1), 'line_' + ''.join(l2)))
+    #     Perpendicular.append(('line_' + ''.join(l2), 'line_' + ''.join(l1)))
     # <Line, Angle>
     AngleSide = []
     for angle in angles:
@@ -810,10 +810,10 @@ def Logic2Graph(logic, target):
         edge_st_index.append(node.index(l1))
         edge_ed_index.append(node.index(l2))
         edge_attr.append('Parallel')
-    for l1, l2 in Perpendicular:
-        edge_st_index.append(node.index(l1))
-        edge_ed_index.append(node.index(l2))
-        edge_attr.append('Perpendicular')
+    # for l1, l2 in Perpendicular:
+    #     edge_st_index.append(node.index(l1))
+    #     edge_ed_index.append(node.index(l2))
+    #     edge_attr.append('Perpendicular')
     for line, poly in Side:
         edge_st_index.append(node.index(line))
         edge_ed_index.append(node.index(poly))

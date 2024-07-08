@@ -1,9 +1,13 @@
 import argparse
 import json
+import os
 import sys
+import time
 
+import numpy as np
 from func_timeout import func_timeout, FunctionTimedOut
 from sympy import N
+from tqdm import tqdm
 
 from GeoDRL.converter import Text2Logic, Logic2Graph
 from GeoDRL.logic_solver import LogicSolver
@@ -11,6 +15,7 @@ from reasoner.graph_matching import load_models_from_json, get_candidate_models_
 from reasoner.logic_graph import GlobalGraph
 from reasoner.graph_solver import GraphSolver
 from reasoner.utils import json_to_gml, draw_graph_from_gml
+from reasoner.config import logger
 from reasoner import config
 
 
@@ -24,9 +29,8 @@ def get_logic_forms(q_id):
     return text
 
 
-def get_global_graph(logic_forms, draw_graph=False):
-    parser, target = Text2Logic(logic_forms)
-    print("Target: ", target)
+def get_global_graph(parser, target, draw_graph=False):
+    logger.debug("Target: %s", target)
     solver = LogicSolver(parser.logic)
     solver.initSearch()
     graph_json = Logic2Graph(solver.logic, target)
@@ -39,23 +43,112 @@ def get_global_graph(logic_forms, draw_graph=False):
 
 
 def solve_question(q_id):
-    logic_forms = get_logic_forms(q_id)
-    global_graph = get_global_graph(logic_forms)
-    model_pool = load_models_from_json(json.load(open(config.model_pool_path, 'r')))
+    res = {"id": q_id, "target": None, "answer": None, "model_instance_eq_num": None, "correctness": "no", "time": None}
+    s_time = time.time()
+    try:
+        data_path = os.path.join(config.db_dir_single, str(q_id), "data.json")
+        with open(data_path, "r") as f:
+            data = json.load(f)
+        candidate_value_list = data['precise_value']
+        gt_id = ord(data['answer']) - 65
 
-    graph_solver = GraphSolver(global_graph, model_pool)
-    target_node_values, answer, rounds = graph_solver.solve()
-    print("Total Rounds: ", rounds)
-    print("Target Node Value(s): ", target_node_values)
-    if target_node_values is not None:
-        target_node_values_float = [{key: N(value)} for d in target_node_values for key, value in d.items()]
-        print("Target Node Value(s) (Float): ", target_node_values_float)
-    print("Answer: ", answer)
+        logic_forms = get_logic_forms(q_id)
+        parser, target = Text2Logic(logic_forms)
+        res["target"] = target
+        global_graph = get_global_graph(parser, target)
+        model_pool = load_models_from_json(json.load(open(config.model_pool_path, 'r')))
+
+        graph_solver = GraphSolver(global_graph, model_pool)
+        graph_solver.solve()
+        logger.debug("Total Rounds: %s", graph_solver.rounds)
+        logger.debug("Target Node Value(s): %s", graph_solver.target_node_values)
+        if len(graph_solver.target_node_values) > 0:
+            target_node_values_float = [{key: N(value)} for d in graph_solver.target_node_values for
+                                        key, value in d.items()]
+            logger.debug("Target Node Value(s) (Float): %s", target_node_values_float)
+        answer = graph_solver.answer
+
+        res["model_instance_eq_num"] = graph_solver.model_instance_eq_num
+        if answer is not None:
+            if check_answer(answer, candidate_value_list, gt_id):
+                res["correctness"] = "yes"
+            else:
+                # 可能需要将弧度转换成度数后再验证答案
+                answer_degrees = np.degrees(float(answer))
+                if check_answer(answer_degrees, candidate_value_list, gt_id):
+                    res["correctness"] = "yes"
+                    answer = answer_degrees
+
+        res["answer"] = answer
+        logger.debug("Answer: %s", answer)
+        res['time'] = str(time.time() - s_time)
+    except Exception as e:
+        logger.error(e)
+        res['time'] = str(time.time() - s_time)
+        return res
+
+    return res
+
+
+def evaluate_all_questions(st, ed):
+    with open(config.error_ids_path, 'r') as file:
+        error_ids = {int(line.strip()) for line in file}  # 确保错误ID是整数
+
+    # 生成所有题目ID并排除错误ID
+    all_question_ids = set(range(st, ed))
+    valid_question_ids = list(all_question_ids - error_ids)  # 将集合转换为列表
+    total = len(valid_question_ids)
+    removed_count = len(all_question_ids) - total
+
+    print(f"Removed {removed_count} questions with parsing errors.")
+
+    correct = 0
+    solved = 0
+    st_time = time.time()
+    result_json_dict = {}
+
+    for q_id in tqdm(valid_question_ids):
+        try:
+            # 设置超时时间为60秒
+            res = func_timeout(60, solve_question, args=(q_id,))
+        except:
+            continue
+
+        if res:
+            result_json_dict[res["id"]] = res
+            if res['answer'] is not None:
+                solved += 1
+                for k, v in res.items():
+                    res[k] = str(v)
+
+                if res['correctness'] == "yes":
+                    correct += 1
+
+    ed_time = time.time()
+
+    print(f"Total: {total}, Solved: {solved}, Correctness: {correct}, CorrectRate: {correct * 1.0 / total}")
+    print(f"Time Cost: {ed_time - st_time} seconds.")
+    with open('correct_' + str(correct) + '.json', 'w') as outfile:
+        json.dump(result_json_dict, outfile, indent=4)
+
+
+def check_answer(answer, candidate_value_list, gt_id):
+    if answer is None:
+        return False
+    try:
+        if (all([x is not None for x in candidate_value_list]) and
+                abs(float(candidate_value_list[gt_id]) - answer) == min([abs(float(x) - answer)
+                                                                         for x in candidate_value_list])):
+            return True
+    except Exception as e:
+        logger.error(e)
+    return False
 
 
 def test_graph_matching(q_id):
     logic_forms = get_logic_forms(q_id)
-    global_graph = get_global_graph(logic_forms)
+    parser, target = Text2Logic(logic_forms)
+    global_graph = get_global_graph(parser, target)
     model_pool = load_models_from_json(json.load(open(config.model_pool_test_path, 'r')))
 
     candidate_models = get_candidate_models_from_pool(model_pool, global_graph)
@@ -72,34 +165,53 @@ def test_graph_matching(q_id):
 
 def test_draw_global_graph(q_id):
     logic_forms = get_logic_forms(q_id)
-    global_graph = get_global_graph(logic_forms, True)
+    parser, target = Text2Logic(logic_forms)
+    _ = get_global_graph(parser, target, True)
 
 
 def is_debugging():
     return sys.gettrace() is not None
 
 
+def check_id_in_error_ids(question_id, error_file):
+    with open(error_file, 'r') as file:
+        error_ids = {line.strip() for line in file}
+
+    if str(question_id) in error_ids:
+        return True
+    else:
+        return False
+
+
 if __name__ == "__main__":
+    # evaluate_all_questions(0, 20)
+
     parser = argparse.ArgumentParser(description="Solve a specific question by number.")
     parser.add_argument('question_id', type=int, help='The id of the question to solve')
     try:
         args = parser.parse_args()
         q_id = args.question_id
 
+        if check_id_in_error_ids(q_id, config.error_ids_path):
+            logger.error(f"Error: question id {q_id} is in error_ids")
+            sys.exit(1)
+
         if is_debugging():
-            solve_question(q_id)
+            res = solve_question(q_id)
+            logger.debug(res)
         else:
             try:
                 # 设置超时时间为60秒
-                func_timeout(60, solve_question, args=(q_id,))
+                res = func_timeout(60, solve_question, args=(q_id,))
+                logger.debug(res)
             except FunctionTimedOut:
-                print(f"Error: solve_question timed out after 60 seconds")
+                logger.error(f"Error: solve_question timed out after 60 seconds")
 
         # 测试模型匹配
         # test_graph_matching(q_id)
         # 绘制全局图
         # test_draw_global_graph(q_id)
     except argparse.ArgumentError:
-        print("Error: question_number is required")
+        logger.error("Error: question id is required")
         parser.print_help()
         sys.exit(1)
