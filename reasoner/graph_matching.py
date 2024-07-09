@@ -155,6 +155,9 @@ def parse_expression(expr_str, _placeholders, key_value_pair=None, is_visual=Fal
 
 
 def replace_variables_str(equation_str, mapping_dict, global_symbols=None):
+    if global_symbols is None:
+        global_symbols = {}
+
     # 使用正则表达式匹配可能的变量名（包含字母、数字和下划线）
     pattern = r'\b[a-zA-Z_][a-zA-Z0-9_]*\b'
 
@@ -241,18 +244,20 @@ def extract_variables_and_values(constraints, mapping_dict, global_graph, value_
 
 
 def verify_constraints(model_graph, global_graph, mapping_dict, global_symbols=None, init_solutions=None):
-    key_value_pair = extract_variables_and_values(
-        model_graph.constraints, mapping_dict, global_graph,
-        lambda graph, node: graph.get_node_value(node)
-    )
-
-    if key_value_pair is None:
-        return False
-
     new_constraints = replace_variables_str(model_graph.constraints, mapping_dict, global_symbols)
 
     # 调用 evaluate_expression 函数
-    return evaluate_expression(new_constraints, global_symbols, init_solutions)
+    if init_solutions is not None:
+        return evaluate_expression(new_constraints, global_symbols, init_solutions)
+    else:
+        key_value_pair = extract_variables_and_values(
+            model_graph.constraints, mapping_dict, global_graph,
+            lambda graph, node: graph.get_node_value(node)[0]
+        )
+
+        if key_value_pair is None:
+            return False
+        return evaluate_expression(new_constraints, global_symbols, key_value_pair)
 
 
 def verify_visual_constraints(model_graph, global_graph, mapping_dict, global_symbols):

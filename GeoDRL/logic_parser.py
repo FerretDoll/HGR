@@ -301,7 +301,8 @@ class LogicParser:
         if line is not None:
             self.logic.defineLine(*line)
             self.logic.defineAngle(line[0], point, line[1], 180)
-            facts(self.logic.PointLiesOnLine, (point, line[0], line[1]))
+            sorted_line = sorted([line[0], line[1]])
+            facts(self.logic.PointLiesOnLine, (point, sorted_line[0], sorted_line[1]))
 
     def PointLiesOnCircle(self, point, circle):
         assert circle[0] == "Circle", f"Expected 'Circle', but got {circle[0]}"
@@ -613,8 +614,8 @@ class LogicParser:
                 assert len(intersection) > 0, f"Expected non-empty intersection, but got length {len(intersection)}"
                 tangent_point = intersection.pop()
                 self.Perpendicular(['Line', *line], ['Line', O, tangent_point])
-                self.logic.define_line(O, line[0])
-                self.logic.define_line(O, line[1])
+                # self.logic.define_line(O, line[0])
+                # self.logic.define_line(O, line[1])
                 
 
 

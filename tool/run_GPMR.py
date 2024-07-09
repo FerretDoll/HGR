@@ -184,6 +184,7 @@ def check_id_in_error_ids(question_id, error_file):
 
 
 if __name__ == "__main__":
+    # 测试多个题目
     # evaluate_all_questions(0, 20)
 
     parser = argparse.ArgumentParser(description="Solve a specific question by number.")
@@ -192,6 +193,7 @@ if __name__ == "__main__":
         args = parser.parse_args()
         q_id = args.question_id
 
+        # 测试解答单个题目
         if check_id_in_error_ids(q_id, config.error_ids_path):
             logger.error(f"Error: question id {q_id} is in error_ids")
             sys.exit(1)
