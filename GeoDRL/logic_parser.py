@@ -25,6 +25,7 @@ def suppress_stdout():
         finally:
             sys.stdout = old_stdout
 
+
 class LogicParser:
     def __init__(self, logic):
         assert isinstance(logic, ExtendedDefinition)
@@ -105,6 +106,7 @@ class LogicParser:
                 arc = self.logic.parseArc(expr[1][1:])
                 if val is not None:
                     self.logic.defineArc(*arc, val)
+                    self.logic.defineAngle(arc[1], arc[0], arc[2], val)
                 else:
                     try:
                         return self.logic.find_arc_measure(arc)[0]
@@ -129,11 +131,11 @@ class LogicParser:
         if expr[0] == 'HypotenuseOf':
             line = self.HypotenuseOf(expr)
             return self.getValue(['LengthOf', ['Line', line[0], line[1]]])
-        
+
         if expr[0] in ['AltitudeOf', 'HeightOf']:
             line = self.HeightOf(expr)
             return self.getValue(['LengthOf', ['Line', line[0], line[1]]])
-        
+
         if expr[0] == 'BaseOf':
             line = self.BaseOf(expr)
             return self.getValue(['LengthOf', ['Line', line[0], line[1]]])
@@ -147,26 +149,26 @@ class LogicParser:
                 points = self.logic.find_points_on_circle(expr[1][1])
                 if val is not None:
                     for point in points:
-                        self.logic.define_length(expr[1][1], point, (val**0.5 / pi).subs(self.logic.variables))
+                        self.logic.define_length(expr[1][1], point, (val ** 0.5 / pi).subs(self.logic.variables))
                 return
             elif type(expr[1][1]) == list:
                 # ["AreaOf", ["Regular", ["Polygon", "A", "B", "C", "D"]]]
-                self.dfsParseTree(expr[1])    
+                self.dfsParseTree(expr[1])
                 poly = sort_points(expr[1][1][1:])
                 sym = self.logic.newAreaSymbol('Polygon({})'.format(','.join(poly)))
             else:
-                self.parseQuad(expr[1])  
+                self.parseQuad(expr[1])
                 poly = sort_points(expr[1][1:])
                 sym = self.logic.newAreaSymbol('Polygon({})'.format(','.join(poly)))
             if val is not None:
                 self.logic.define_equal(sym, val)
             else:
                 return sym
-            
+
         if expr[0] == 'PerimeterOf':
             self.parseQuad(expr[1])
             points = expr[1][1:]
-            lines = [(points[i%len(points)], points[(i+1)%len(points)]) for i in range(len(points))]
+            lines = [(points[i % len(points)], points[(i + 1) % len(points)]) for i in range(len(points))]
             res = 0
             for line in lines:
                 res += self.getValue(['LengthOf', ['Line', line[0], line[1]]])
@@ -174,7 +176,7 @@ class LogicParser:
                 self.logic.build_equation(res, val)
             else:
                 return res
-        
+
         if expr[0] == 'DiameterOf':
             O = expr[1][1]
             point = self.logic.find_points_on_circle(O)[0]
@@ -208,13 +210,13 @@ class LogicParser:
             return mp[expr[0]](self.getValue(expr[1]))
 
         if expr[0] in ["Add", "Mul", "SumOf", "HalfOf", "SquareOf", "SqrtOf"]:
-            if expr[0] == "HalfOf": 
+            if expr[0] == "HalfOf":
                 res = self.getValue(expr[1]) / 2.0
             if expr[0] == "SquareOf":
                 res = self.getValue(expr[1]) ** 2
             if expr[0] == "SqrtOf":
                 res = self.getValue(expr[1]) ** 0.5
-            if expr[0] in ["Add", "SumOf"]: 
+            if expr[0] in ["Add", "SumOf"]:
                 res = sum([self.getValue(x) for x in expr[1:]])
             if expr[0] in ['Mul']:
                 res = 1  # Mul
@@ -238,10 +240,10 @@ class LogicParser:
         if identifier == "Trapezoid":
             if self.logic.point_positions is not None:
                 p = np.array([self.logic.point_positions[x] for x in tree[1:]])
-                angle1 = self.calculate_angle_measure((p[1]-p[0]),(p[2]-p[3]))
-                angle2 = self.calculate_angle_measure((p[2]-p[0]),(p[1]-p[3]))
-                abs_angle1 = min(angle1, 180-angle1)
-                abs_angle2 = min(angle2, 180-angle2)
+                angle1 = self.calculate_angle_measure((p[1] - p[0]), (p[2] - p[3]))
+                angle2 = self.calculate_angle_measure((p[2] - p[0]), (p[1] - p[3]))
+                abs_angle1 = min(angle1, 180 - angle1)
+                abs_angle2 = min(angle2, 180 - angle2)
                 if abs_angle1 < abs_angle2:
                     self.Parallel(['Line', tree[1], tree[2]], ['Line', tree[3], tree[4]])
                 else:
@@ -343,18 +345,18 @@ class LogicParser:
             self.logic.defineLine(*line2)
             self.logic.define_parallel(line1, line2)
 
-    def LegOf(self, expr, refer_point = None):
+    def LegOf(self, expr, refer_point=None):
         if expr[0] == "Isosceles" and expr[1][0] == "Trapezoid":
             expr = expr[1]
         if expr[0] == "Trapezoid":
             # determine parallels
-            if self.logic.check_parallel((expr[1], expr[2]),(expr[3], expr[4])):
-                LegCand = ((expr[1],expr[4]), (expr[2],expr[3]))
-            elif self.logic.check_parallel((expr[2], expr[3]),(expr[1], expr[4])):
-                LegCand = ((expr[1],expr[2]), (expr[3],expr[4]))
+            if self.logic.check_parallel((expr[1], expr[2]), (expr[3], expr[4])):
+                LegCand = ((expr[1], expr[4]), (expr[2], expr[3]))
+            elif self.logic.check_parallel((expr[2], expr[3]), (expr[1], expr[4])):
+                LegCand = ((expr[1], expr[2]), (expr[3], expr[4]))
             else:
                 raise RuntimeError
-            
+
             if refer_point is None:
                 return LegCand
             else:
@@ -374,13 +376,13 @@ class LogicParser:
                     return expr[2], expr[4]
                 if self.logic.check_angle_measure((expr[3], refer_point, expr[4], 180)):
                     return expr[3], expr[4]
-    
+
     def BaseOf(self, expr):
         if expr[1][0] == "Trapezoid":
-            if self.logic.check_parallel((expr[1][1], expr[1][2]),(expr[1][3], expr[1][4])):
-                BaseCand = ((expr[1][1], expr[1][2]),(expr[1][3], expr[1][4]))
-            elif self.logic.check_parallel((expr[1][2], expr[1][3]),(expr[1][1], expr[1][4])):
-                BaseCand = ((expr[1][2], expr[1][3]),(expr[1][4], expr[1][1]))
+            if self.logic.check_parallel((expr[1][1], expr[1][2]), (expr[1][3], expr[1][4])):
+                BaseCand = ((expr[1][1], expr[1][2]), (expr[1][3], expr[1][4]))
+            elif self.logic.check_parallel((expr[1][2], expr[1][3]), (expr[1][1], expr[1][4])):
+                BaseCand = ((expr[1][2], expr[1][3]), (expr[1][4], expr[1][1]))
             else:
                 raise RuntimeError(f"Failed to identify parallel sides in Trapezoid: {expr[1]}")
             return BaseCand
@@ -396,15 +398,15 @@ class LogicParser:
                     if nowdis < mindis:
                         mindis, minid = nowdis, i
                 o, p, q = points[minid], points[1 - min(minid, 1)], points[3 - max(minid, 1)]
-                return p,q
+                return p, q
         if expr[1][0] == "Triangle":
             # Height - Base
             points = expr[1][1:]
             o, a = self.HeightOf(expr)
             points.remove(a)
-            b,c = points
+            b, c = points
             return b, c
-            
+
     def SideOf(self, expr):
         # regular polygon
         self.parseQuad(expr[1])
@@ -412,13 +414,12 @@ class LogicParser:
             points = expr[1][1][1:]
         else:
             points = expr[1][1:]
-        return [(points[i%len(points)], points[(i+1)%len(points)]) for i in range(len(points))]
+        return [(points[i % len(points)], points[(i + 1) % len(points)]) for i in range(len(points))]
 
-            
     def calculate_angle_measure(self, v1, v2):
         try:
-        # input: np.array
-            return np.arccos(np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2)))*180/np.pi
+            # input: np.array
+            return np.arccos(np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))) * 180 / np.pi
         except Exception as e:
             # 捕捉并处理异常
             raise RuntimeError(f"Error calculating angle measure between vectors {v1} and {v2}: {e}")
@@ -430,8 +431,8 @@ class LogicParser:
             points = expr[1][1:]
         else:
             raise RuntimeError
-        
-        a, b ,c = points
+
+        a, b, c = points
         if self.logic.check_angle_measure((b, a, c, 90)):
             return b, c
         elif self.logic.check_angle_measure((a, b, c, 90)):
@@ -441,19 +442,20 @@ class LogicParser:
         else:
             # check point position
             p = np.array([self.logic.point_positions[x] for x in points])
-            angle0 = self.calculate_angle_measure(p[1]-p[0], p[2]-p[0])
-            angle1 = self.calculate_angle_measure(p[0]-p[1], p[2]-p[1])
-            angle2 = self.calculate_angle_measure(p[0]-p[2], p[1]-p[2])
-            list = [np.abs(angle0-90), np.abs(angle1-90), np.abs(angle2-90)]
+            angle0 = self.calculate_angle_measure(p[1] - p[0], p[2] - p[0])
+            angle1 = self.calculate_angle_measure(p[0] - p[1], p[2] - p[1])
+            angle2 = self.calculate_angle_measure(p[0] - p[2], p[1] - p[2])
+            list = [np.abs(angle0 - 90), np.abs(angle1 - 90), np.abs(angle2 - 90)]
             right_index = np.argmin(list)
-            self.logic.define_angle_measure(points[(right_index+1)%3], points[right_index], points[(right_index+2)%3], 90)
-            return points[(right_index+1)%3], points[(right_index+2)%3]
+            self.logic.define_angle_measure(points[(right_index + 1) % 3], points[right_index],
+                                            points[(right_index + 2) % 3], 90)
+            return points[(right_index + 1) % 3], points[(right_index + 2) % 3]
 
     def HeightOf(self, expr):
         if expr[1][0] == 'Triangle':
             points = expr[1][1:]
             rightAngle_list = list(self.logic.find_all_90_angles().keys())
-            for a,o,b in rightAngle_list:
+            for a, o, b in rightAngle_list:
                 if a in points and b in points:
                     _t = points.copy()
                     _t.remove(a)
@@ -461,9 +463,9 @@ class LogicParser:
                     c = _t[0]
                     if c == o:
                         continue
-                    if self.logic.check_angle_measure((a,o,c,180)):
+                    if self.logic.check_angle_measure((a, o, c, 180)):
                         return o, b
-                    elif self.logic.check_angle_measure((b,o,c,180)):
+                    elif self.logic.check_angle_measure((b, o, c, 180)):
                         return o, a
                     else:
                         raise RuntimeError(f"Failed to determine height for triangle {expr[1]} with right angle at {o}")
@@ -513,18 +515,19 @@ class LogicParser:
         if identifier == "Isosceles" and tree[1][0] == "Trapezoid":
             self.parseQuad(tree[1])
             points = tree[1][1:]
-            (a,b), (c,d) = self.BaseOf(['BaseOf', tree[1]])
-            self.logic.lineEqual([a,c], [b,d])
-            self.logic.angleEqual([a,b,c],[b,a,d])
-            self.logic.angleEqual([b,c,d],[c,d,a])
-        
+            (a, b), (c, d) = self.BaseOf(['BaseOf', tree[1]])
+            self.logic.lineEqual([a, c], [b, d])
+            self.logic.angleEqual([a, b, c], [b, a, d])
+            self.logic.angleEqual([b, c, d], [c, d, a])
+
         if identifier == "Regular" or identifier == "Equilateral":
             self.parseQuad(tree[1])
             points = sort_points(tree[1][1:])
             for i in range(1, len(points)):
-                self.logic.lineEqual([points[0], points[1]], [points[i%len(points)], points[(i+1)%len(points)]])
-                self.logic.defineAngle(points[i%len(points)], points[(i+1)%len(points)], points[(i+2)%len(points)], 180*(len(points)-2)/len(points))
-        
+                self.logic.lineEqual([points[0], points[1]], [points[i % len(points)], points[(i + 1) % len(points)]])
+                self.logic.defineAngle(points[i % len(points)], points[(i + 1) % len(points)],
+                                       points[(i + 2) % len(points)], 180 * (len(points) - 2) / len(points))
+
         if identifier == "IsHypotenuseOf":
             # when it occurs in text, it means 'IsAltitudeOf'. Poor annotation!
             pass
@@ -540,8 +543,8 @@ class LogicParser:
                 raise RuntimeError
             triangle_points.remove(a)
             b, c = triangle_points
-            self.PointLiesOnLine(o, (b,c))
-            self.Perpendicular(('Line',a,o),('Line',b,c))
+            self.PointLiesOnLine(o, (b, c))
+            self.Perpendicular(('Line', a, o), ('Line', b, c))
 
         ''' 4. Binary Geometric Relations '''
         if identifier == "PointLiesOnLine":
@@ -595,7 +598,8 @@ class LogicParser:
             if identifier == "InscribedIn":
                 assert tree[2][0] == "Circle", f"Expected 'Circle' at tree[2][0], but got {tree[2][0]}"
                 self.dfsParseTree(tree[1])
-                if tree[1][0] in ["Triangle", "Quadrilateral", "Square", "Rhombus", "Kite", "Rectangle", "Pentagon", "Hexagon"]:
+                if tree[1][0] in ["Triangle", "Quadrilateral", "Square", "Rhombus", "Kite", "Rectangle", "Pentagon",
+                                  "Hexagon"]:
                     points = tree[1][1:]
                 else:
                     points = tree[1][1][1:]
@@ -616,8 +620,6 @@ class LogicParser:
                 self.Perpendicular(['Line', *line], ['Line', O, tangent_point])
                 # self.logic.define_line(O, line[0])
                 # self.logic.define_line(O, line[1])
-                
-
 
         ''' 5. A-IsXOf-B  Geometric Relations '''
         if identifier == "IsMidpointOf":
@@ -672,7 +674,7 @@ class LogicParser:
                 Leg2 = self.LegOf(tree[2], tree[1][2])
                 self.Midpoint(tree[1][1], Leg1)
                 self.Midpoint(tree[1][2], Leg2)
-                Base1, Base2 = self.BaseOf(['BaseOf',tree[2]])
+                Base1, Base2 = self.BaseOf(['BaseOf', tree[2]])
                 self.Parallel(tree[1][1:], Base1)
                 self.Parallel(tree[1][1:], Base2)
             else:
@@ -697,8 +699,8 @@ class LogicParser:
                 line.remove(a)
                 tri.remove(a)
                 o = line[0]
-                b,c = tri
-                self.Midpoint(o, (b,c))
+                b, c = tri
+                self.Midpoint(o, (b, c))
 
         if identifier == "IsChordOf":
             self.PointLiesOnCircle(tree[1][1], tree[2])
@@ -726,9 +728,9 @@ class LogicParser:
             elif tree[1][0] == "RatioOf" and tree[2][0] == 'RatioOf':
                 ratio = Symbol('RatioValue')
                 val1 = self.getValue(tree[1][2])
-                self.getValue(tree[1][1], ratio*val1)
+                self.getValue(tree[1][1], ratio * val1)
                 val2 = self.getValue(tree[2][2])
-                self.getValue(tree[2][1], ratio*val2)
+                self.getValue(tree[2][1], ratio * val2)
             else:
                 # self.parseEquals(tree[1], tree[2])
                 def _totlength(data):
@@ -743,17 +745,21 @@ class LogicParser:
                 # print (tree[1], tree[2], val)
                 self.getValue(tree[1], val)
 
-                if tree[1][0] == "LengthOf" and tree[1][1][0] == "Line" and tree[2][0] == "LengthOf" and tree[2][1][0] == "Line":
+                if tree[1][0] == "LengthOf" and tree[1][1][0] == "Line" and tree[2][0] == "LengthOf" and tree[2][1][
+                    0] == "Line":
                     line1 = self.logic.parseLine(tree[1][1][1:])
                     line2 = self.logic.parseLine(tree[2][1][1:])
                     self.logic.lineEqual(line1, line2)
                     # self.logic.PutIntoEqualLineSet(tree[1][1][1:], tree[2][1][1:])
-                if tree[1][0] == "MeasureOf" and tree[1][1][0] == "Angle" and tree[2][0] == "MeasureOf" and tree[2][1][0] == "Angle":
-                    if not (len(tree[1][1]) == 2 and tree[1][1][1].isdigit() or len(tree[2][1]) == 2 and tree[2][1][1].isdigit()):
+                if tree[1][0] == "MeasureOf" and tree[1][1][0] == "Angle" and tree[2][0] == "MeasureOf" and tree[2][1][
+                    0] == "Angle":
+                    if not (len(tree[1][1]) == 2 and tree[1][1][1].isdigit() or len(tree[2][1]) == 2 and tree[2][1][
+                        1].isdigit()):
                         angle1 = self.logic.parseAngle(tree[1][1][1:])
                         angle2 = self.logic.parseAngle(tree[2][1][1:])
                         self.logic.angleEqual(angle1, angle2)
-                if tree[1][0] == "MeasureOf" and tree[1][1][0] == "Arc" and tree[2][0] == "MeasureOf" and tree[2][1][0] == "Arc":
+                if tree[1][0] == "MeasureOf" and tree[1][1][0] == "Arc" and tree[2][0] == "MeasureOf" and tree[2][1][
+                    0] == "Arc":
                     arc1 = self.logic.parseArc(tree[1][1][1:])
                     arc2 = self.logic.parseArc(tree[2][1][1:])
                     self.logic.arcEqual(arc1, arc2)
@@ -797,7 +803,9 @@ class LogicParser:
         if phrase[0] == "MeasureOf":
             phrase = phrase[1]
             if phrase[0] == "Arc":
-                return ['Value', 'arc_measure', *self.logic.parseArc(phrase[1:])]
+                arc = self.logic.parseArc(phrase[1:])
+                return ['Value', arc[1], arc[0], arc[2]]
+                # return ['Value', 'arc_measure', *self.logic.parseArc(phrase[1:])]
             elif phrase[0] == "Angle":
                 return self._find_angle(phrase)
             return None
@@ -805,7 +813,6 @@ class LogicParser:
         if phrase[0] == "RadiusOf":
             O = phrase[1][1]
             return ['Value', O, self.logic.find_points_on_circle(O)[0]]
-            
 
         if phrase[0] == "PerimeterOf" or phrase[0] == "CircumferenceOf":
             if len(phrase[1]) == 2:
@@ -859,7 +866,7 @@ class LogicParser:
 
         if phrase[0] in ["RatioOf", "Add", "Mul", "SumOf"]:
             return [phrase[0]] + [self.findTarget(['Find', x]) for x in phrase[1:]]
-        
+
         if phrase[0] == "ScaleFactorOf":
             return ['ScaleFactorOf', phrase[1], phrase[2]]
 

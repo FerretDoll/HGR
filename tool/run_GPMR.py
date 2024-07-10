@@ -183,6 +183,23 @@ def check_id_in_error_ids(question_id, error_file):
         return False
 
 
+def test_one_question(q_id):
+    if check_id_in_error_ids(q_id, config.error_ids_path):
+        logger.error(f"Error: question id {q_id} is in error_ids")
+        sys.exit(1)
+
+    if is_debugging():
+        res = solve_question(q_id)
+        logger.debug(res)
+    else:
+        try:
+            # 设置超时时间为60秒
+            res = func_timeout(60, solve_question, args=(q_id,))
+            logger.debug(res)
+        except FunctionTimedOut:
+            logger.error(f"Error: solve_question timed out after 60 seconds")
+
+
 if __name__ == "__main__":
     # 测试多个题目
     # evaluate_all_questions(0, 20)
@@ -194,23 +211,11 @@ if __name__ == "__main__":
         q_id = args.question_id
 
         # 测试解答单个题目
-        if check_id_in_error_ids(q_id, config.error_ids_path):
-            logger.error(f"Error: question id {q_id} is in error_ids")
-            sys.exit(1)
-
-        if is_debugging():
-            res = solve_question(q_id)
-            logger.debug(res)
-        else:
-            try:
-                # 设置超时时间为60秒
-                res = func_timeout(60, solve_question, args=(q_id,))
-                logger.debug(res)
-            except FunctionTimedOut:
-                logger.error(f"Error: solve_question timed out after 60 seconds")
+        test_one_question(q_id)
 
         # 测试模型匹配
         # test_graph_matching(q_id)
+
         # 绘制全局图
         # test_draw_global_graph(q_id)
     except argparse.ArgumentError:
