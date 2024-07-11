@@ -3,14 +3,14 @@ import logging
 from sympy import pi
 
 
-# os.environ['ENVIRONMENT'] = 'production'
-# 创建一个日志记录器
+os.environ['ENVIRONMENT'] = 'production'
+# 创建日志记录器
 logger = logging.getLogger('my_logger')
 
-# 创建一个控制台处理器
+# 创建控制台处理器
 console_handler = logging.StreamHandler()
 
-# 创建一个只包含消息内容的格式化器并将其添加到处理器
+# 创建格式化器并将其添加到处理器
 formatter = logging.Formatter('%(message)s')
 console_handler.setFormatter(formatter)
 
@@ -24,6 +24,22 @@ if environment == 'production':
     logger.setLevel(logging.ERROR)
 else:
     logger.setLevel(logging.DEBUG)
+
+# 创建 eval_logger 用于存储实验数据
+eval_logger = logging.getLogger('eval_logger')
+
+# 创建文件处理器用于将日志记录到文件
+file_handler = logging.FileHandler('experiment.log')
+
+# 创建格式化器并将其添加到文件处理器
+file_formatter = logging.Formatter('%(asctime)s - %(message)s')
+file_handler.setFormatter(file_formatter)
+
+# 将文件处理器添加到 eval_logger
+eval_logger.addHandler(file_handler)
+
+# 设置 eval_logger 日志级别为 DEBUG
+eval_logger.setLevel(logging.DEBUG)
 
 # 节点类型到整数的映射
 NODE_TYPE_TO_INT = {
