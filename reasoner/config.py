@@ -3,7 +3,7 @@ import logging
 from sympy import pi
 
 
-os.environ['ENVIRONMENT'] = 'production'
+# os.environ['ENVIRONMENT'] = 'production'
 # 创建日志记录器
 logger = logging.getLogger('my_logger')
 

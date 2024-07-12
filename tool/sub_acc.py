@@ -124,7 +124,7 @@ def print_type_acc(Result_Acc):
 
 if __name__ == '__main__':
     st = 0
-    ed = 338
+    ed = 596
     result_file = 'correct_data.json'
 
     DATA_PATH = config.db_dir_single
@@ -165,3 +165,7 @@ if __name__ == '__main__':
     print("[File]:\t  ", result_file)
     print("[Acc]:\t   {}/{} = {:.2%}".format(correct, total, correct / total))
     print_type_acc(Acc)
+
+    with open('wrong_data.txt', 'w') as out:
+        for id_ in sorted(unsolved_list, key=int):
+            out.write(str(id_) + '\n')

@@ -206,23 +206,23 @@ def test_one_question(q_id):
 
 if __name__ == "__main__":
     # 测试多个题目
-    evaluate_all_questions(0, 10)
+    # evaluate_all_questions(0, 10)
 
-    # parser = argparse.ArgumentParser(description="Solve a specific question by number.")
-    # parser.add_argument('question_id', type=int, help='The id of the question to solve')
-    # try:
-    #     args = parser.parse_args()
-    #     q_id = args.question_id
-    #
-    #     # 测试解答单个题目
-    #     test_one_question(q_id)
-    #
-    #     # 测试模型匹配
-    #     # test_graph_matching(q_id)
-    #
-    #     # 绘制全局图
-    #     # test_draw_global_graph(q_id)
-    # except argparse.ArgumentError:
-    #     logger.error("Error: question id is required")
-    #     parser.print_help()
-    #     sys.exit(1)
+    parser = argparse.ArgumentParser(description="Solve a specific question by number.")
+    parser.add_argument('question_id', type=int, help='The id of the question to solve')
+    try:
+        args = parser.parse_args()
+        q_id = args.question_id
+
+        # 测试解答单个题目
+        # test_one_question(q_id)
+
+        # 测试模型匹配
+        # test_graph_matching(q_id)
+
+        # 绘制全局图
+        test_draw_global_graph(q_id)
+    except argparse.ArgumentError:
+        logger.error("Error: question id is required")
+        parser.print_help()
+        sys.exit(1)

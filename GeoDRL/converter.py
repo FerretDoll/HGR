@@ -79,11 +79,11 @@ def Text2Logic(text, debug_mode=False):
             if debug_mode:
                 print("The logic form is", logic_form)
 
+            parse_tree = parser.parse(logic_form)
+            parse_tree = remove_spaces_from_tree(parse_tree)
             if logic_form.find('Find') != -1:
-                target = parser.findTarget(parser.parse(logic_form))  # ['Value', 'A', 'C']
+                target = parser.findTarget(parse_tree)  # ['Value', 'A', 'C']
             else:
-                parse_tree = parser.parse(logic_form)  # ['Equals', ['LengthOf', ['Line', 'A', 'C']], '10']
-                parse_tree = remove_spaces_from_tree(parse_tree)
                 parser.dfsParseTree(parse_tree)
 
     return parser, target
@@ -399,13 +399,16 @@ def Logic2Graph(logic, target):
             new_val = []
             for v in val:
                 if 'angle' in str(v):
-                    _, result = str(v).split('_', 1)
-                    if not logic.check_same_angle(angle, result):
-                        same_angle = logic.get_same_angle_key(result)
-                        if same_angle != angle:
-                            v = Symbol("angle_" + ''.join([str(ch) for ch in same_angle]))
+                    if '_' in str(v):
+                        _, result = str(v).split('_', 1)
+                        if not logic.check_same_angle(angle, result):
+                            same_angle = logic.get_same_angle_key(result)
+                            if same_angle != angle:
+                                v = Symbol("angle_" + ''.join([str(ch) for ch in same_angle]))
+                            new_val.append(v)
+                            continue
+                    else:
                         new_val.append(v)
-                        continue
                 elif v != 180:
                     new_val.append(v)
             if len(new_val) > 0:

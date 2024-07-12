@@ -85,7 +85,7 @@ class LogicParser:
             if expr[1][0] == "Angle":
                 if len(expr[1]) == 2 and expr[1][1].isdigit():
                     # MeasureOf(Angle(1)), expr = ['MeasureOf', ['Angle', 1]]
-                    angle_value = Symbol("angle " + str(expr[1][1]))  # {Symbol} angle_ABC
+                    angle_value = Symbol("angle" + str(expr[1][1]))  # {Symbol} angle_ABC
                     if val is None:
                         return angle_value
                     self.logic.define_equal(angle_value, val)
