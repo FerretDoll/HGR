@@ -6925,5 +6925,149 @@
       }
     ],
     "grf_data": "13\n0 4\n1 1\n2 1\n3 1\n4 1\n5 2\n6 2\n7 2\n8 2\n9 2\n10 3\n11 3\n12 3\n3\n0 2 14\n0 1 14\n0 3 14\n2\n1 2 1\n1 3 1\n1\n2 3 1\n0\n3\n4 1 1\n4 3 1\n4 2 1\n4\n5 4 7\n5 3 11\n5 2 11\n5 0 13\n3\n6 1 11\n6 2 11\n6 0 13\n4\n7 3 11\n7 1 11\n7 0 13\n7 10 15\n2\n8 4 11\n8 2 11\n3\n9 3 11\n9 4 11\n9 12 15\n3\n10 1 14\n10 3 12\n10 4 12\n4\n11 6 15\n11 1 14\n11 4 12\n11 2 12\n3\n12 3 12\n12 4 14\n12 1 12\n"
+  },
+  "Circle_Anglesum_1": {
+    "relation": "Equals(Add(MeasureOf($angle_1),MeasureOf($angle_2),MeasureOf($angle_3)),2*pi)",
+    "constraints": "",
+    "visual_constraints": "",
+    "actions": [],
+    "equations": [
+      "angle_1 + angle_2 + angle_3 = 2 * pi"
+    ],
+    "node_types": {
+      "5": 1,
+      "2": 3,
+      "3": 3,
+      "1": 1
+    },
+    "edge_types": {
+      "9": 1,
+      "14": 3,
+      "15": 6,
+      "11": 3
+    },
+    "nodes": [
+      {
+        "id": "n1",
+        "name": "circle_a",
+        "type": "Circle"
+      },
+      {
+        "id": "n2",
+        "name": "line_1",
+        "type": "Line"
+      },
+      {
+        "id": "n3",
+        "name": "line_2",
+        "type": "Line"
+      },
+      {
+        "id": "n4",
+        "name": "line_3",
+        "type": "Line"
+      },
+      {
+        "id": "n5",
+        "name": "angle_1",
+        "type": "Angle"
+      },
+      {
+        "id": "n6",
+        "name": "angle_2",
+        "type": "Angle"
+      },
+      {
+        "id": "n7",
+        "name": "a",
+        "type": "Point"
+      },
+      {
+        "id": "n8",
+        "name": "angle_3",
+        "type": "Angle"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "n7",
+        "target": "n1",
+        "type": "Center"
+      },
+      {
+        "id": "e2",
+        "source": "n6",
+        "target": "n7",
+        "type": "Vertex"
+      },
+      {
+        "id": "e3",
+        "source": "n5",
+        "target": "n7",
+        "type": "Vertex"
+      },
+      {
+        "id": "e4",
+        "source": "n8",
+        "target": "n7",
+        "type": "Vertex"
+      },
+      {
+        "id": "e5",
+        "source": "n8",
+        "target": "n4",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e6",
+        "source": "n8",
+        "target": "n3",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e7",
+        "source": "n5",
+        "target": "n2",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e8",
+        "source": "n5",
+        "target": "n3",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e9",
+        "source": "n6",
+        "target": "n2",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e10",
+        "source": "n6",
+        "target": "n4",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e11",
+        "source": "n7",
+        "target": "n2",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e12",
+        "source": "n7",
+        "target": "n3",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e13",
+        "source": "n7",
+        "target": "n4",
+        "type": "Endpoint"
+      }
+    ],
+    "grf_data": "8\n0 5\n1 2\n2 2\n3 2\n4 3\n5 3\n6 1\n7 3\n0\n0\n0\n0\n3\n4 6 14\n4 1 15\n4 2 15\n3\n5 6 14\n5 1 15\n5 3 15\n4\n6 0 9\n6 1 11\n6 2 11\n6 3 11\n3\n7 6 14\n7 3 15\n7 2 15\n"
   }
 }
