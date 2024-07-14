@@ -215,13 +215,13 @@ if __name__ == "__main__":
         q_id = args.question_id
 
         # 测试解答单个题目
-        # test_one_question(q_id)
+        test_one_question(q_id)
 
         # 测试模型匹配
         # test_graph_matching(q_id)
 
         # 绘制全局图
-        test_draw_global_graph(q_id)
+        # test_draw_global_graph(q_id)
     except argparse.ArgumentError:
         logger.error("Error: question id is required")
         parser.print_help()

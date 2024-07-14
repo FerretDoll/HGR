@@ -195,7 +195,7 @@ def getTargetObject(logic, target):
         if len(target) == 5:
             return 'arc_' + ''.join(target[2:])
         if len(target) == 4:
-            return 'angle_' + ''.join(sort_angle(target[1:]))
+            return 'angle_' + ''.join(logic.get_same_angle_key(target[1:]))
         if len(target) == 3:
             return 'line_' + ''.join(sorted(target[1:]))
         if len(target) == 2:
@@ -277,7 +277,7 @@ def create_sympy_equation(logic, target):
         if len(target) == 5:
             return symbols('arc_' + ''.join(target[2:]))
         if len(target) == 4:
-            return symbols('angle_' + ''.join(sort_angle(target[1:])))
+            return symbols('angle_' + ''.join(logic.get_same_angle_key(target[1:])))
         if len(target) == 3:
             return symbols('line_' + ''.join(sorted(target[1:])))
         if len(target) == 2:
@@ -397,16 +397,17 @@ def Logic2Graph(logic, target):
         val = logic.find_angle_measure(angle, skip_if_has_number=False)
         if len(val) > 0:
             new_val = []
+            added_angle_symbol = []
             for v in val:
                 if 'angle' in str(v):
                     if '_' in str(v):
                         _, result = str(v).split('_', 1)
                         if not logic.check_same_angle(angle, result):
                             same_angle = logic.get_same_angle_key(result)
-                            if same_angle != angle:
+                            if same_angle != angle and same_angle not in added_angle_symbol:
                                 v = Symbol("angle_" + ''.join([str(ch) for ch in same_angle]))
+                                added_angle_symbol.append(same_angle)
                             new_val.append(v)
-                            continue
                     else:
                         new_val.append(v)
                 elif v != 180:
@@ -716,9 +717,10 @@ def Logic2Graph(logic, target):
         if t.startswith('variable_'):
             variable = t.split('_')[-1]
             for i, attrs in enumerate(node_attr):
-                for attr in attrs:
-                    if isinstance(attr, sympy.Basic) and sympy.Symbol(variable) in attr.free_symbols:
-                        target_node.append(node[i])
+                if isinstance(attrs, list):
+                    for attr in attrs:
+                        if isinstance(attr, sympy.Basic) and sympy.Symbol(variable) in attr.free_symbols:
+                            target_node.append(node[i])
         else:
             if t in node:
                 target_node.append(t)

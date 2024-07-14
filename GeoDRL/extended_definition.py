@@ -454,8 +454,24 @@ class ExtendedDefinition(BasicDefinition):
             if angle1[1] != angle2[1]: continue
             side1 = self.find_all_points_on_line([angle1[0], angle1[1]])
             side1 = side1[:side1.index(angle1[1])]
+            remove1 = []
+            for p in side1:
+                temp_measure = self.find_angle_measure((angle1[0], angle1[1], p))
+                if len(temp_measure) > 0:
+                    if temp_measure[0] == 180:
+                        remove1.append(p)
+            side1 = [p for p in side1 if p not in remove1]
+
             side2 = self.find_all_points_on_line([angle1[2], angle1[1]])
             side2 = side2[:side2.index(angle1[1])]
+            remove2 = []
+            for p in side2:
+                temp_measure = self.find_angle_measure((angle1[2], angle1[1], p))
+                if len(temp_measure) > 0:
+                    if temp_measure[0] == 180:
+                        remove2.append(p)
+            side2 = [p for p in side2 if p not in remove2]
+
             if (angle2[0] in side1 and angle2[2] in side2) or (angle2[0] in side2 and angle2[2] in side1):
                 self.PutIntoSameAngleDict(angle1, angle2)
         # print(self.SameAngleDict)
