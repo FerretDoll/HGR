@@ -50,7 +50,7 @@ def solve_question(q_id):
         with open(data_path, "r") as f:
             data = json.load(f)
         candidate_value_list = data['precise_value']
-        gt_id = ord(data['answer']) - 65
+        gt_id = ord(data['answer']) - 65  # 将A-D转换为0-3
 
         logic_forms = get_logic_forms(q_id)
         parser, target = Text2Logic(logic_forms)
@@ -110,7 +110,7 @@ def evaluate_all_questions(st, ed):
     for q_id in tqdm(valid_question_ids):
         try:
             # 设置超时时间为60秒
-            res = func_timeout(60, solve_question, args=(q_id,))
+            res = func_timeout(120, solve_question, args=(q_id,))
         except:
             logger.error(f"Error occurred while solving question {q_id}.")
             continue
@@ -198,7 +198,7 @@ def test_one_question(q_id):
     else:
         try:
             # 设置超时时间为60秒
-            res = func_timeout(60, solve_question, args=(q_id,))
+            res = func_timeout(120, solve_question, args=(q_id,))
             logger.debug(res)
         except FunctionTimedOut:
             logger.error(f"Error: solve_question timed out after 60 seconds")

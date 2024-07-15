@@ -366,22 +366,27 @@ class GraphSolver:
                         logger.debug(f"Step 2 Round {step_2_rounds}:")
                         for i, (group, common_vars) in enumerate(zip(groups, variables), start=1):
                             logger.debug(f"Group {i} ({common_vars}): {group}")
+                            count = 0
                             for eq1, eq2 in combinations(group, 2):
-                                try:
-                                    pairs = [eq1.subs(knowns), eq2.subs(knowns)]
-                                    logger.debug(f"Solving equations: {pairs}")
-                                    sol = func_timeout(10, solve, kwargs=dict(f=pairs, dict=True))
-                                    sol = [s for s in sol if 0 not in s.values()]  # 暂时不考虑值为0的解
-                                    if len(sol) > 0:
-                                        sol = max(sol, key=estimate)  # TODO 这里也许需要修改，因为通过与视觉值比较后选出最相近的一组解更合理
-                                        logger.debug(f"Solution: {sol}")
-                                        for var, value in sol.items():
-                                            knows_added_step_2[var] = value
-                                        break
-                                except FunctionTimedOut as e:
-                                    logger.debug(f"Failed to solve complex equations within the time limit in step 2 (group {i})")
-                                except Exception as e:
-                                    logger.error(f"Failed to solve complex equations in step 2 (group {i}): {e}")
+                                if count < 3:
+                                    try:
+                                        pairs = [eq1.subs(knowns), eq2.subs(knowns)]
+                                        logger.debug(f"Solving equations: {pairs}")
+                                        sol = func_timeout(10, solve, kwargs=dict(f=pairs, dict=True))
+                                        sol = [s for s in sol if 0 not in s.values()]  # 暂时不考虑值为0的解
+                                        if len(sol) > 0:
+                                            sol = max(sol, key=estimate)  # TODO 这里也许需要修改，因为通过与视觉值比较后选出最相近的一组解更合理
+                                            logger.debug(f"Solution: {sol}")
+                                            for var, value in sol.items():
+                                                knows_added_step_2[var] = value
+                                            break
+                                    except FunctionTimedOut as e:
+                                        logger.debug(f"Failed to solve complex equations within the time limit in step 2 (group {i})")
+                                    except Exception as e:
+                                        logger.error(f"Failed to solve complex equations in step 2 (group {i}): {e}")
+                                else:
+                                    break
+                                count += 1
 
                             # 不管group中的方程是否能求出解，都要将group中的方程都标记为已求解，避免无限循环
                             for eq in group:

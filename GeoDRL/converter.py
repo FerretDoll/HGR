@@ -1,6 +1,7 @@
 from itertools import product, permutations
 
-from sympy import rad, pi, sympify, Mul, Number, Add, Integer, Float, Symbol, cos, tan, cot, sqrt, symbols, sin
+from sympy import rad, pi, sympify, Mul, Number, Add, Integer, Float, Symbol, cos, tan, cot, sqrt, symbols, sin, \
+    Rational
 from pyparsing import ParseResults
 
 from GeoDRL.extended_definition import ExtendedDefinition
@@ -193,7 +194,8 @@ def getTargetObject(logic, target):
     assert target is not None, "target is None"
     if target[0] == 'Value':
         if len(target) == 5:
-            return 'arc_' + ''.join(target[2:])
+            # return 'arc_' + ''.join(target[2:])
+            return 'angle_' + ''.join(logic.get_same_angle_key((target[3], target[2], target[4])))
         if len(target) == 4:
             return 'angle_' + ''.join(logic.get_same_angle_key(target[1:]))
         if len(target) == 3:
@@ -275,7 +277,9 @@ def create_sympy_equation(logic, target):
         return sum(create_sympy_equation(logic, t) for t in target[1:])
     elif target[0] == 'Value':
         if len(target) == 5:
-            return symbols('arc_' + ''.join(target[2:]))
+            return (symbols('angle_' + ''.join(logic.get_same_angle_key((target[3], target[2], target[4])))) *
+                    symbols('line_' + ''.join(sorted((target[3], target[2])))))
+            # return symbols('arc_' + ''.join(target[2:]))
         if len(target) == 4:
             return symbols('angle_' + ''.join(logic.get_same_angle_key(target[1:])))
         if len(target) == 3:
@@ -302,9 +306,9 @@ def create_sympy_equation(logic, target):
             return sum(side_lines)
     elif target[0] == 'Sector':
         O, A, B = target[1:]
-        angle_measure = symbols('angle_' + sort_angle(A + O + B))
+        angle_measure = symbols('angle_' + ''.join(logic.get_same_angle_key((O, A, B))))
         radius = symbols('line_' + ''.join(sorted(O + A)))
-        return radius**2 * pi * angle_measure / 360
+        return radius**2 * angle_measure / 2
     elif target[0] == 'ScaleFactorOf':
         if target[1][0] == "Shape" and len(target[1]) == 2:
             line = (target[1][1], target[2][1])
@@ -337,8 +341,8 @@ def convert_degrees_to_radians(expr_list):
     new_expr_list = []
     for expr in expr_list:
         # 将表达式中的数字部分转换为弧度
-        if isinstance(expr, (Integer, Float)):  # 如果表达式是整数或浮点数
-            new_expr_list.append(expr * pi / 180)
+        if isinstance(expr, (Integer, Float, float)):  # 如果表达式是整数或浮点数
+            new_expr_list.append(Rational(expr) * pi / 180)
         else:
             parsed_expr = sympify(expr)
             # 分别处理表达式中的每个项
