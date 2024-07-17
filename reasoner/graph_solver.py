@@ -256,196 +256,200 @@ class GraphSolver:
         except Exception as e:
             logger.error(f"Failed to solve base equations: {e}")
 
+        base_solution = {}
+        estimate = lambda sol: sum([str(expr)[0] != '-' for expr in sol.values()])  # negative value
         if len(base_solutions) > 0:
-            estimate = lambda sol: sum([str(expr)[0] != '-' for expr in sol.values()])  # negative value
             base_solution = max(base_solutions, key=estimate)
             self.init_solutions = base_solution
             logger.debug(f"Base Solution:\n{base_solution}")
 
             self.update_graph_node_values(base_solution)
-
-            if len(complex_equations) > 0:
-                # 由于求解非线性方程组需要耗费大量时间，因此这里对求解算法进行优化
-                # 使用列表推导式应用替换
-                substituted_equations = list(set([eq.subs(base_solution) for eq in complex_equations]))
-                logger.debug(f"Substituted Complex Equations: {substituted_equations}")
-
-                # 统计每个方程包含的变量数
-                equation_vars = [(eq, self.equation_variables(eq)) for eq in substituted_equations]
-                equation_vars_sorted = sorted(equation_vars, key=lambda x: len(x[1]))
-                knowns = {}
-                solved_equations = []
-                remaining_equations = substituted_equations.copy()
-                logger.debug("Start solving complex equations in step 1")
-                # 步骤1：先求解只包含单一变量的方程
-                while True:
-                    single_unknown_eq = None
-                    for eq, vars_set in equation_vars_sorted:
-                        if eq not in solved_equations:
-                            unknown_vars = vars_set - knowns.keys()
-                            if len(unknown_vars) == 0:
-                                solved_equations.append(eq)
-                                remaining_equations.remove(eq)
-                                continue
-                            if len(unknown_vars) == 1:
-                                single_unknown_eq = (eq, list(unknown_vars)[0])
-                                break
-
-                    if single_unknown_eq:
-                        eq, unknown_var = single_unknown_eq
-                        solved_equations.append(eq)
-                        remaining_equations.remove(eq)
-                        try:
-                            sol = func_timeout(20, solve, kwargs=dict(f=eq.subs(knowns), symbols=unknown_var))
-                            if len(sol) == 1:
-                                knowns[unknown_var] = sol[0]
-                            elif len(sol) > 1:
-                                if str(unknown_var) in self.global_graph.graph.nodes:
-                                    visual_value = self.global_graph.get_node_visual_value(str(unknown_var))
-                                    knowns[unknown_var] = closest_to_number(sol, visual_value)
-                                else:
-                                    for node_id, node_attrs in self.global_graph.graph.nodes(data=True):
-                                        node_value = node_attrs.get('value')
-                                        if node_value != 'None':
-                                            try:
-                                                for single_value in node_value:
-                                                    if not isNumber(single_value):
-                                                        # 尝试解析节点值为表达式
-                                                        parsed_expr = sympify(single_value)
-                                                        # 获取表达式中的所有符号
-                                                        symbols_in_expr = parsed_expr.atoms(Symbol)
-
-                                                        # 如果表达式只包含一个符号
-                                                        if len(symbols_in_expr) == 1:
-                                                            single_symbol = next(iter(symbols_in_expr))
-
-                                                            # 检查这个符号是否在 numeric_values 中
-                                                            if str(single_symbol) == str(unknown_var):
-                                                                candi_node_values = []
-                                                                for s in sol:
-                                                                    # 替换符号为其数值
-                                                                    new_value = parsed_expr.subs(single_symbol, s)
-
-                                                                    # 检查新值是否是一个纯数字
-                                                                    if new_value.is_number:
-                                                                        # 更新节点值
-                                                                        candi_node_values.append(new_value)
-                                                                if len(candi_node_values) > 0:
-                                                                    visual_value = (
-                                                                        self.global_graph.get_node_visual_value(node_id)
-                                                                    )
-                                                                    knowns[unknown_var] = closest_to_number(
-                                                                        candi_node_values, visual_value)
-                                            except SympifyError:
-                                                # 如果解析失败或节点值不是表达式，忽略该节点
-                                                continue
-
-                        except FunctionTimedOut as e:
-                            logger.debug(f"Failed to solve complex equations within the time limit in step 1")
-                        except Exception as e:
-                            logger.error(f"Failed to solve complex equations in step 1: {e}")
-                    else:
-                        break
-
-                if knowns:
-                    logger.debug(f"Complex Solution in Step 1: {knowns}")
-                    self.update_graph_node_values(knowns)
-                else:
-                    logger.debug("No solution found for complex equations in step 1")
-
-                if len(remaining_equations) > 0:
-                    total_added = {}
-                    step_2_rounds = 0
-                    logger.debug("Start solving complex equations in step 2")
-                    while True:
-                        knows_added_step_2 = {}
-                        groups, variables = self.find_equations_and_common_variables(equation_vars, solved_equations, knowns)
-                        if len(groups) == 0:
-                            break
-                        step_2_rounds += 1
-                        logger.debug(f"Step 2 Round {step_2_rounds}:")
-                        for i, (group, common_vars) in enumerate(zip(groups, variables), start=1):
-                            logger.debug(f"Group {i} ({common_vars}): {group}")
-                            count = 0
-                            for eq1, eq2 in combinations(group, 2):
-                                if count < 3:
-                                    try:
-                                        pairs = [eq1.subs(knowns), eq2.subs(knowns)]
-                                        logger.debug(f"Solving equations: {pairs}")
-                                        sol = func_timeout(10, solve, kwargs=dict(f=pairs, dict=True))
-                                        sol = [s for s in sol if 0 not in s.values()]  # 暂时不考虑值为0的解
-                                        if len(sol) > 0:
-                                            sol = max(sol, key=estimate)  # TODO 这里也许需要修改，因为通过与视觉值比较后选出最相近的一组解更合理
-                                            logger.debug(f"Solution: {sol}")
-                                            for var, value in sol.items():
-                                                knows_added_step_2[var] = value
-                                            break
-                                    except FunctionTimedOut as e:
-                                        logger.debug(f"Failed to solve complex equations within the time limit in step 2 (group {i})")
-                                    except Exception as e:
-                                        logger.error(f"Failed to solve complex equations in step 2 (group {i}): {e}")
-                                else:
-                                    break
-                                count += 1
-
-                            # 不管group中的方程是否能求出解，都要将group中的方程都标记为已求解，避免无限循环
-                            for eq in group:
-                                solved_equations.append(eq)
-                                remaining_equations.remove(eq)
-
-                        if knows_added_step_2:
-                            knowns.update(knows_added_step_2)
-                            total_added.update(knows_added_step_2)
-
-                    if total_added:
-                        logger.debug(f"Complex Solution in Step 2: {total_added}")
-                        self.update_graph_node_values(total_added)
-                    else:
-                        logger.debug("No solution found for complex equations in step 2")
-
-                    # 步骤3：将所有解代入剩余方程组统一求解
-                    if len(remaining_equations) > 0:
-                        logger.debug("Start solving complex equations in step 3")
-                        remaining_solutions = []
-                        try:
-                            substitutions = [func_timeout(10, eq.subs, args=(knowns,)) for eq in remaining_equations]
-                            remaining_solutions = func_timeout(20, solve, kwargs=dict(f=substitutions, dict=True))
-                        except FunctionTimedOut as e:
-                            logger.debug(f"Failed to solve complex equations within the time limit in step 3")
-                        except Exception as e:
-                            logger.error(f"Failed to solve complex equations in step 3: {e}")
-
-                        if len(remaining_solutions) > 0:
-                            remaining_solutions = max(remaining_solutions, key=estimate)
-                            logger.debug(f"Complex Solution in Step 3: {remaining_solutions}")
-                            knowns.update(remaining_solutions)
-                            self.update_graph_node_values(remaining_solutions)
-                        else:
-                            logger.debug("No solution found for complex equations in step 3")
-                if knowns:
-                    substituted_base_equations = list(set([eq.subs(knowns) for eq in base_equations]))
-                    logger.debug(f"Substituted Base Equations: {substituted_base_equations}")
-                    base_final_solutions = []
-                    try:
-                        base_final_solutions = func_timeout(20, solve,
-                                                            kwargs=dict(f=substituted_base_equations, dict=True))
-                    except FunctionTimedOut as e:
-                        logger.debug(f"Failed to solve substituted base equations within the time limit")
-                    except Exception as e:
-                        logger.error(f"Failed to solve substituted base equations: {e}")
-                    if len(base_final_solutions) > 0:
-                        estimate = lambda sol: sum([str(expr)[0] != '-' for expr in sol.values()])  # negative value
-                        base_final_solution = max(base_final_solutions, key=estimate)
-                        self.init_solutions = base_final_solution
-                        logger.debug(f"Base Final Solution:\n{base_final_solution}")
-
-                        self.update_graph_node_values(base_final_solution)
-
-            logger.debug("Equation solving finished!")
-            self.print_node_value()
         else:
             logger.debug("No solution found for base equations")
-            logger.debug("Equation solving finished!")
+
+        if len(complex_equations) > 0:
+            # 由于求解非线性方程组需要耗费大量时间，因此这里对求解算法进行优化
+            # 使用列表推导式应用替换
+            if len(base_solutions) > 0:
+                substituted_equations = list(set([eq.subs(base_solution) for eq in complex_equations]))
+                logger.debug(f"Substituted Complex Equations: {substituted_equations}")
+                knowns = {}
+            else:
+                substituted_equations = list(set([eq for eq in complex_equations]))
+                knowns = {key: sympify(value) for key, value in self.known_var.items()}
+
+            # 统计每个方程包含的变量数
+            equation_vars = [(eq, self.equation_variables(eq)) for eq in substituted_equations]
+            equation_vars_sorted = sorted(equation_vars, key=lambda x: len(x[1]))
+            solved_equations = []
+            remaining_equations = substituted_equations.copy()
+            logger.debug("Start solving complex equations in step 1")
+            # 步骤1：先求解只包含单一变量的方程
+            while True:
+                single_unknown_eq = None
+                for eq, vars_set in equation_vars_sorted:
+                    if eq not in solved_equations:
+                        unknown_vars = vars_set - knowns.keys()
+                        if len(unknown_vars) == 0:
+                            solved_equations.append(eq)
+                            remaining_equations.remove(eq)
+                            continue
+                        if len(unknown_vars) == 1:
+                            single_unknown_eq = (eq, list(unknown_vars)[0])
+                            break
+
+                if single_unknown_eq:
+                    eq, unknown_var = single_unknown_eq
+                    solved_equations.append(eq)
+                    remaining_equations.remove(eq)
+                    try:
+                        sol = func_timeout(20, solve, kwargs=dict(f=eq.subs(knowns), symbols=unknown_var))
+                        if len(sol) == 1:
+                            knowns[unknown_var] = sol[0]
+                        elif len(sol) > 1:
+                            if str(unknown_var) in self.global_graph.graph.nodes:
+                                visual_value = self.global_graph.get_node_visual_value(str(unknown_var))
+                                knowns[unknown_var] = closest_to_number(sol, visual_value)
+                            else:
+                                for node_id, node_attrs in self.global_graph.graph.nodes(data=True):
+                                    node_value = node_attrs.get('value')
+                                    if node_value != 'None':
+                                        try:
+                                            for single_value in node_value:
+                                                if not isNumber(single_value):
+                                                    # 尝试解析节点值为表达式
+                                                    parsed_expr = sympify(single_value)
+                                                    # 获取表达式中的所有符号
+                                                    symbols_in_expr = parsed_expr.atoms(Symbol)
+
+                                                    # 如果表达式只包含一个符号
+                                                    if len(symbols_in_expr) == 1:
+                                                        single_symbol = next(iter(symbols_in_expr))
+
+                                                        # 检查这个符号是否在 numeric_values 中
+                                                        if str(single_symbol) == str(unknown_var):
+                                                            candi_node_values = []
+                                                            for s in sol:
+                                                                # 替换符号为其数值
+                                                                new_value = parsed_expr.subs(single_symbol, s)
+
+                                                                # 检查新值是否是一个纯数字
+                                                                if new_value.is_number:
+                                                                    # 更新节点值
+                                                                    candi_node_values.append(new_value)
+                                                            if len(candi_node_values) > 0:
+                                                                visual_value = (
+                                                                    self.global_graph.get_node_visual_value(node_id)
+                                                                )
+                                                                knowns[unknown_var] = closest_to_number(
+                                                                    candi_node_values, visual_value)
+                                        except SympifyError:
+                                            # 如果解析失败或节点值不是表达式，忽略该节点
+                                            continue
+
+                    except FunctionTimedOut as e:
+                        logger.debug(f"Failed to solve complex equations within the time limit in step 1")
+                    except Exception as e:
+                        logger.error(f"Failed to solve complex equations in step 1: {e}")
+                else:
+                    break
+
+            if knowns:
+                logger.debug(f"Complex Solution in Step 1: {knowns}")
+                self.update_graph_node_values(knowns)
+            else:
+                logger.debug("No solution found for complex equations in step 1")
+
+            if len(remaining_equations) > 0:
+                total_added = {}
+                step_2_rounds = 0
+                logger.debug("Start solving complex equations in step 2")
+                while True:
+                    knows_added_step_2 = {}
+                    groups, variables = self.find_equations_and_common_variables(equation_vars, solved_equations, knowns)
+                    if len(groups) == 0:
+                        break
+                    step_2_rounds += 1
+                    logger.debug(f"Step 2 Round {step_2_rounds}:")
+                    for i, (group, common_vars) in enumerate(zip(groups, variables), start=1):
+                        logger.debug(f"Group {i} ({common_vars}): {group}")
+                        count = 0
+                        for eq1, eq2 in combinations(group, 2):
+                            if count < 3:
+                                try:
+                                    pairs = [eq1.subs(knowns), eq2.subs(knowns)]
+                                    logger.debug(f"Solving equations: {pairs}")
+                                    sol = func_timeout(10, solve, kwargs=dict(f=pairs, dict=True))
+                                    sol = [s for s in sol if 0 not in s.values()]  # 暂时不考虑值为0的解
+                                    if len(sol) > 0:
+                                        sol = max(sol, key=estimate)  # TODO 这里也许需要修改，因为通过与视觉值比较后选出最相近的一组解更合理
+                                        logger.debug(f"Solution: {sol}")
+                                        for var, value in sol.items():
+                                            knows_added_step_2[var] = value
+                                        break
+                                except FunctionTimedOut as e:
+                                    logger.debug(f"Failed to solve complex equations within the time limit in step 2 (group {i})")
+                                except Exception as e:
+                                    logger.error(f"Failed to solve complex equations in step 2 (group {i}): {e}")
+                            else:
+                                break
+                            count += 1
+
+                        # 不管group中的方程是否能求出解，都要将group中的方程都标记为已求解，避免无限循环
+                        for eq in group:
+                            solved_equations.append(eq)
+                            remaining_equations.remove(eq)
+
+                    if knows_added_step_2:
+                        knowns.update(knows_added_step_2)
+                        total_added.update(knows_added_step_2)
+
+                if total_added:
+                    logger.debug(f"Complex Solution in Step 2: {total_added}")
+                    self.update_graph_node_values(total_added)
+                else:
+                    logger.debug("No solution found for complex equations in step 2")
+
+                # 步骤3：将所有解代入剩余方程组统一求解
+                if len(remaining_equations) > 0:
+                    logger.debug("Start solving complex equations in step 3")
+                    remaining_solutions = []
+                    try:
+                        substitutions = [func_timeout(10, eq.subs, args=(knowns,)) for eq in remaining_equations]
+                        remaining_solutions = func_timeout(20, solve, kwargs=dict(f=substitutions, dict=True))
+                    except FunctionTimedOut as e:
+                        logger.debug(f"Failed to solve complex equations within the time limit in step 3")
+                    except Exception as e:
+                        logger.error(f"Failed to solve complex equations in step 3: {e}")
+
+                    if len(remaining_solutions) > 0:
+                        remaining_solutions = max(remaining_solutions, key=estimate)
+                        logger.debug(f"Complex Solution in Step 3: {remaining_solutions}")
+                        knowns.update(remaining_solutions)
+                        self.update_graph_node_values(remaining_solutions)
+                    else:
+                        logger.debug("No solution found for complex equations in step 3")
+            if knowns:
+                substituted_base_equations = list(set([eq.subs(knowns) for eq in base_equations]))
+                logger.debug(f"Substituted Base Equations: {substituted_base_equations}")
+                base_final_solutions = []
+                try:
+                    base_final_solutions = func_timeout(20, solve,
+                                                        kwargs=dict(f=substituted_base_equations, dict=True))
+                except FunctionTimedOut as e:
+                    logger.debug(f"Failed to solve substituted base equations within the time limit")
+                except Exception as e:
+                    logger.error(f"Failed to solve substituted base equations: {e}")
+                if len(base_final_solutions) > 0:
+                    estimate = lambda sol: sum([str(expr)[0] != '-' for expr in sol.values()])  # negative value
+                    base_final_solution = max(base_final_solutions, key=estimate)
+                    self.init_solutions = base_final_solution
+                    logger.debug(f"Base Final Solution:\n{base_final_solution}")
+
+                    self.update_graph_node_values(base_final_solution)
+
+        logger.debug("Equation solving finished!")
+        self.print_node_value()
 
     def execute_actions(self, action_list):
         """根据模型匹配的结果执行预设的动作"""

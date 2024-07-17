@@ -125,7 +125,7 @@ def print_type_acc(Result_Acc):
 if __name__ == '__main__':
     st = 0
     ed = 596
-    result_file = 'correct_data.json'
+    result_file = 'output/correct_data.json'
 
     DATA_PATH = config.db_dir_single
 
@@ -147,15 +147,16 @@ if __name__ == '__main__':
     # solved_wrong_list = []
     unsolved_list = []
     for i in range(total):
-        if str(i) in result_data:
-            if result_data[str(i)]["correctness"] == "yes":
-                solved_correct_list.append(i)
+        id = str(valid_question_ids[i])
+        if id in result_data:
+            if result_data[id]["correctness"] == "yes":
+                solved_correct_list.append(id)
             # elif result_data[str(i)]["answer"] != None:
             #     solved_wrong_list.append(i)
             else:
-                unsolved_list.append(i)
+                unsolved_list.append(id)
         else:
-            unsolved_list.append(i)
+            unsolved_list.append(id)
     guess_correct_list = random.sample(unsolved_list, math.ceil(len(unsolved_list) / 4))
 
     Acc = solved_correct_list + guess_correct_list
@@ -166,6 +167,6 @@ if __name__ == '__main__':
     print("[Acc]:\t   {}/{} = {:.2%}".format(correct, total, correct / total))
     print_type_acc(Acc)
 
-    with open('wrong_data.txt', 'w') as out:
+    with open('output/wrong_data.txt', 'w') as out:
         for id_ in sorted(unsolved_list, key=int):
             out.write(str(id_) + '\n')
