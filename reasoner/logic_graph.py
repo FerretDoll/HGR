@@ -109,6 +109,7 @@ class GlobalGraph(LogicGraph):
         super().__init__()
         self.target = None
         self.target_equation = None
+        self.point_positions = None
 
     def update_grf_data(self):
         new_grf_data = ""
@@ -193,6 +194,7 @@ class GlobalGraph(LogicGraph):
         # 设置目标节点
         global_graph.target = json_data.get("target_node")
         global_graph.target_equation = json_data.get("target_equation")
+        global_graph.point_positions = json_data.get("point_positions")
 
         global_graph.node_types = global_graph.get_node_types()
         global_graph.edge_types = global_graph.get_edge_types()

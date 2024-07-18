@@ -8,6 +8,7 @@ from sympy import sympify, simplify, And, Or, Eq, Symbol, Le, Ge, Lt, Gt
 from reasoner.logic_graph import ModelGraph
 from reasoner.utils import filter_duplicates, group_by_id_sets
 from reasoner.config import TOLERANCE
+from utils.common_utils import calc_cross_angle
 
 # 定义回调函数类型
 CALLBACK_FUNC_TYPE = ctypes.CFUNCTYPE(None, ctypes.c_char_p)
@@ -107,12 +108,12 @@ def eval_with_none_check(expression, substitutions):
     return sympify(expression).evalf(subs=substitutions)
 
 
-def parse_expression(expr_str, _placeholders, key_value_pair=None, is_visual=False):
+def parse_expression(expr_str, _placeholders, key_value_pair=None, is_visual=False, point_positions=None):
     while '(' in expr_str:
         open_index = expr_str.rfind('(')
         close_index = expr_str.find(')', open_index)
         inner_expr = expr_str[open_index + 1:close_index]
-        parsed_inner_expr = parse_expression(inner_expr, _placeholders, key_value_pair, is_visual)
+        parsed_inner_expr = parse_expression(inner_expr, _placeholders, key_value_pair, is_visual, point_positions)
         _placeholder = f"__placeholder_{len(_placeholders)}__"
         _placeholders[_placeholder] = parsed_inner_expr
         expr_str = expr_str[:open_index] + _placeholder + expr_str[close_index + 1:]
@@ -124,7 +125,8 @@ def parse_expression(expr_str, _placeholders, key_value_pair=None, is_visual=Fal
         else:
             parts = expr_str.split('AND')
             operator = And
-        return operator(*[parse_expression(part.strip(), _placeholders, key_value_pair, is_visual) for part in parts])
+        return operator(*[parse_expression(part.strip(), _placeholders, key_value_pair, is_visual, point_positions)
+                          for part in parts])
 
     # 检查是否包含比较操作符
     for operator, sympy_op in (('<=', Le), ('>=', Ge), ('<', Lt), ('>', Gt)):
@@ -150,6 +152,17 @@ def parse_expression(expr_str, _placeholders, key_value_pair=None, is_visual=Fal
             return approximately_equal(lhs_eval, rhs_eval, tolerance)
         else:
             return Eq(sympify(lhs), sympify(rhs))
+
+    # 检查是否包含平行符号 ||
+    if '||' in expr_str and point_positions is not None:
+        lhs, rhs = map(str.strip, expr_str.split('||'))
+        _, line_1 = str(lhs).split('_', 1)
+        _, line_2 = str(rhs).split('_', 1)
+        cross_angle = calc_cross_angle(line_1, line_2, point_positions)
+        if (approximately_equal(cross_angle, 180, TOLERANCE.get('angle')) or
+                approximately_equal(cross_angle, 0, TOLERANCE.get('angle'))):
+            return True
+        return False
 
     return sympify(expr_str)
 
@@ -187,6 +200,9 @@ def evaluate_expression(constraints, global_symbols=None, init_solutions=None):
     placeholders = {}
     parsed_expr = parse_expression(constraints, placeholders, key_value_pair=None, is_visual=False)
 
+    if isinstance(parsed_expr, bool):
+        return parsed_expr
+
     # 循环替换占位符直到没有更多占位符为止
     while any(p in str(parsed_expr) for p in placeholders):
         for placeholder, expr in placeholders.items():
@@ -204,9 +220,13 @@ def evaluate_expression(constraints, global_symbols=None, init_solutions=None):
     return is_valid
 
 
-def evaluate_expression_visual(constraints, key_value_pair):
+def evaluate_expression_visual(constraints, key_value_pair, point_positions):
     placeholders = {}
-    parsed_expr = parse_expression(constraints, placeholders, key_value_pair, is_visual=True)
+    parsed_expr = parse_expression(constraints, placeholders, key_value_pair, is_visual=True,
+                                   point_positions=point_positions)
+
+    if isinstance(parsed_expr, bool):
+        return parsed_expr
 
     # 循环替换占位符直到没有更多占位符为止
     while any(p in str(parsed_expr) for p in placeholders):
@@ -226,7 +246,6 @@ def extract_variables_and_values(constraints, mapping_dict, global_graph, value_
     # 提取约束中的所有不重复变量
     vars_in_constraint = re.findall(r'\b(?!pi\b|sin\b|cos\b|tan\b)\w*[a-zA-Z]+\w*\b', constraints)
     variables = {var for var in vars_in_constraint if var not in {'AND', 'OR'}}
-
     key_value_pair = {}
     for var in variables:
         if var not in mapping_dict:
@@ -278,7 +297,7 @@ def verify_visual_constraints(model_graph, global_graph, mapping_dict, global_sy
 
     new_constraints = replace_variables_str(model_graph.visual_constraints, mapping_dict, global_symbols)
 
-    return evaluate_expression_visual(new_constraints, key_value_pair)
+    return evaluate_expression_visual(new_constraints, key_value_pair, global_graph.point_positions)
 
 
 def update_details_with_mapping(details, mapping_dict):

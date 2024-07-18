@@ -18,10 +18,16 @@ from reasoner.utils import json_to_gml, draw_graph_from_gml
 from reasoner.config import logger, eval_logger
 from reasoner import config
 
+with open(config.diagram_logic_forms_json_path, 'r') as diagram_file:
+    diagram_logic_forms_json = json.load(diagram_file)
+with open(config.text_logic_forms_json_path, 'r') as text_file:
+    text_logic_forms_json = json.load(text_file)
+with open(config.model_pool_path, 'r') as model_pool_file:
+    model_pool = load_models_from_json(json.load(model_pool_file))
+
 
 def get_logic_forms(q_id):
-    diagram_logic_forms_json = json.load(open(config.diagram_logic_forms_json_path, 'r'))
-    text_logic_forms_json = json.load(open(config.text_logic_forms_json_path, 'r'))
+
     text = diagram_logic_forms_json[str(q_id)]
     text["logic_forms"] = text.pop("diagram_logic_forms")
     text["logic_forms"].extend(text_logic_forms_json[str(q_id)]["text_logic_forms"])
@@ -56,7 +62,6 @@ def solve_question(q_id):
         parser, target = Text2Logic(logic_forms)
         res["target"] = target
         global_graph = get_global_graph(parser, target)
-        model_pool = load_models_from_json(json.load(open(config.model_pool_path, 'r')))
 
         graph_solver = GraphSolver(global_graph, model_pool)
         graph_solver.solve()
@@ -111,8 +116,11 @@ def evaluate_all_questions(st, ed):
         try:
             # 设置超时时间为60秒
             res = func_timeout(120, solve_question, args=(q_id,))
-        except:
-            logger.error(f"Error occurred while solving question {q_id}.")
+        except FunctionTimedOut:
+            logger.error(f"Error occurred while solving question {q_id}: FunctionTimedOut.")
+            continue
+        except Exception as e:
+            logger.error(f"Error occurred while solving question {q_id}: {e}")
             continue
 
         if res:
@@ -153,7 +161,8 @@ def test_graph_matching(q_id):
     logic_forms = get_logic_forms(q_id)
     parser, target = Text2Logic(logic_forms)
     global_graph = get_global_graph(parser, target)
-    model_pool = load_models_from_json(json.load(open(config.model_pool_test_path, 'r')))
+    with open(config.model_pool_test_path, 'r') as model_pool_file:
+        model_pool = load_models_from_json(json.load(model_pool_file))
 
     candidate_models = get_candidate_models_from_pool(model_pool, global_graph)
     for model in candidate_models:

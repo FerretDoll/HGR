@@ -1,5 +1,5 @@
 from GeoDRL.basic_definition import BasicDefinition
-from utils.common_utils import isNumber, sort_points
+from utils.common_utils import isNumber, sort_points, calc_angle_measure
 
 from kanren import facts
 from kanren import run, var
@@ -29,11 +29,27 @@ class ExtendedDefinition(BasicDefinition):
             for center in self.find_all_circles():
                 if len(points) > 2 and center in points:
                     points.remove(center)
-            x = points[0]
-            line = self.find_all_points_on_line((x, angle))
-            valid_y = [y for y in points[1:] if y not in line]
-            assert len(valid_y) > 0, "Change %s to angle failed." % angle
-            return [x, angle, valid_y[0]]
+
+            candi_angles = []
+            candi_angles_measures = []
+            # Calculate all measure of all possible angles.
+            for x in points:
+                line = self.find_all_points_on_line((x, angle))
+                valid_y = [y for y in points[1:] if y not in line]
+                assert len(valid_y) > 0, "Change %s to angle failed." % angle
+                for y in valid_y:
+                    candi_angle = [x, angle, y]
+                    if [y, angle, x] not in candi_angles:
+                        measure = calc_angle_measure(candi_angle, self.point_positions)
+                        candi_angles.append([x, angle, y])
+                        candi_angles_measures.append(measure)
+
+            # Find index of the biggest measure
+            index = candi_angles_measures.index(max(candi_angles_measures))
+            final_angle = candi_angles[index]
+
+            return final_angle
+
         return None
 
     def parseLine(self, line, extra_point=None):

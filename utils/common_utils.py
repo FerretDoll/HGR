@@ -3,6 +3,7 @@ import copy
 from functools import reduce
 from itertools import combinations
 
+import numpy as np
 import sympy
 from sympy import sympify, N
 
@@ -356,3 +357,28 @@ def closest_to_number(sympy_list, target):
     closest_expr = sympy_list[numerical_list.index(closest_value)]
 
     return closest_expr
+
+
+def calc_cross_angle(line1, line2, point_positions, is_rad=False):
+    if set(line1) == set(line2):
+        return 0
+    line1_point1, line1_point2 = \
+        point_positions.get(line1[0]), point_positions.get(line1[1])
+    line2_point1, line2_point2 = \
+        point_positions.get(line2[0]), point_positions.get(line2[1])
+
+    arr_a = np.array([(line1_point2[0] - line1_point1[0]), (line1_point2[1] - line1_point1[1])])
+    arr_b = np.array([(line2_point2[0] - line2_point1[0]), (line2_point2[1] - line2_point1[1])])
+    cos_value = (float(arr_a.dot(arr_b)) / (np.sqrt(arr_a.dot(arr_a)) * np.sqrt(arr_b.dot(arr_b))))
+    cos_value = max(min(cos_value, 1), -1)
+
+    if is_rad:
+        return np.arccos(cos_value)
+    else:
+        return np.arccos(cos_value) * (180 / np.pi)
+
+
+def calc_angle_measure(angle, point_positions, is_rad=False):
+    line1 = (angle[1], angle[0])
+    line2 = (angle[1], angle[2])
+    return calc_cross_angle(line1, line2, point_positions, is_rad)

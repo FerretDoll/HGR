@@ -868,4 +868,5 @@ def Logic2Graph(logic, target):
             "edge_index": edge_index,
             "edge_attr": edge_attr,
             "target_node": target_node,
-            "target_equation": target_equation}
+            "target_equation": target_equation,
+            "point_positions": logic.point_positions}
