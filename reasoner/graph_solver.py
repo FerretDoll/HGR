@@ -447,6 +447,8 @@ class GraphSolver:
                     logger.debug(f"Base Final Solution:\n{base_final_solution}")
 
                     self.update_graph_node_values(base_final_solution)
+                else:
+                    logger.debug("No solution found for substituted base equations")
 
         logger.debug("Equation solving finished!")
         self.print_node_value()

@@ -387,20 +387,21 @@ def match_graphs(model_graph, global_graph, global_symbols=None, init_solutions=
             for s in group:
                 mapping_dict = parse_mapping(model_graph, global_graph, s)
 
-                # 检查一般约束，如果约束有效则验证它们，否则默认为True
-                constraints_flag = (not is_constraints_valid(model_graph) or
-                                    verify_constraints(model_graph, global_graph, mapping_dict, global_symbols,
-                                                       init_solutions))
-
                 # 检查视觉约束，如果约束有效则验证它们，否则默认为True
                 visual_constraints_flag = (not is_visual_constraints_valid(model_graph) or
                                            verify_visual_constraints(model_graph, global_graph, mapping_dict,
                                                                      global_symbols))
 
-                # 如果两个标志都为True，则添加到列表并跳出当前循环
-                if constraints_flag and visual_constraints_flag:
-                    mapping_dict_list.append(mapping_dict)
-                    break  # 退出当前 group 的循环
+                if visual_constraints_flag:
+                    # 检查一般约束，如果约束有效则验证它们，否则默认为True
+                    constraints_flag = (not is_constraints_valid(model_graph) or
+                                        verify_constraints(model_graph, global_graph, mapping_dict, global_symbols,
+                                                           init_solutions))
+
+                    # 如果两个标志都为True，则添加到列表并跳出当前循环
+                    if constraints_flag:
+                        mapping_dict_list.append(mapping_dict)
+                        break  # 退出当前 group 的循环
     else:
         solution = filter_duplicates(solution)
         for s in solution:

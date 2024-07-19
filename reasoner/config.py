@@ -74,8 +74,8 @@ EDGE_TYPE_TO_INT = {
 UPPER_BOUND = 10
 TOLERANCE = {
     "line": 3,
-    "angle": pi/20,
-    "arc": pi/20,
+    "angle": pi/30,
+    "arc": pi/30,
     "circle": 5,
     "triangle": 5,
     "polygon": 5
