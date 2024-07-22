@@ -232,6 +232,7 @@ class GraphSolver:
         self.remove_solved_equations(self.model_equations)
 
     def solve_equations(self):
+        old_init_solutions = self.init_solutions.copy()
         self.current_new = set()
         self.equations = list(set(self.equations))
         # 创建两个列表，一个用于存放基本方程，一个用于存放包含三角函数的方程
@@ -411,24 +412,24 @@ class GraphSolver:
                     logger.debug("No solution found for complex equations in step 2")
 
                 # 步骤3：将所有解代入剩余方程组统一求解
-                if len(remaining_equations) > 0:
-                    logger.debug("Start solving complex equations in step 3")
-                    remaining_solutions = []
-                    try:
-                        substitutions = [func_timeout(10, eq.subs, args=(knowns,)) for eq in remaining_equations]
-                        remaining_solutions = func_timeout(20, solve, kwargs=dict(f=substitutions, dict=True))
-                    except FunctionTimedOut as e:
-                        logger.debug(f"Failed to solve complex equations within the time limit in step 3")
-                    except Exception as e:
-                        logger.error(f"Failed to solve complex equations in step 3: {e}")
-
-                    if len(remaining_solutions) > 0:
-                        remaining_solutions = max(remaining_solutions, key=estimate)
-                        logger.debug(f"Complex Solution in Step 3: {remaining_solutions}")
-                        knowns.update(remaining_solutions)
-                        self.update_graph_node_values(remaining_solutions)
-                    else:
-                        logger.debug("No solution found for complex equations in step 3")
+                # if len(remaining_equations) > 0:
+                #     logger.debug("Start solving complex equations in step 3")
+                #     remaining_solutions = []
+                #     try:
+                #         substitutions = [func_timeout(10, eq.subs, args=(knowns,)) for eq in remaining_equations]
+                #         remaining_solutions = func_timeout(20, solve, kwargs=dict(f=substitutions, dict=True))
+                #     except FunctionTimedOut as e:
+                #         logger.debug(f"Failed to solve complex equations within the time limit in step 3")
+                #     except Exception as e:
+                #         logger.error(f"Failed to solve complex equations in step 3: {e}")
+                #
+                #     if len(remaining_solutions) > 0:
+                #         remaining_solutions = max(remaining_solutions, key=estimate)
+                #         logger.debug(f"Complex Solution in Step 3: {remaining_solutions}")
+                #         knowns.update(remaining_solutions)
+                #         self.update_graph_node_values(remaining_solutions)
+                #     else:
+                #         logger.debug("No solution found for complex equations in step 3")
             if knowns:
                 substituted_base_equations = list(set([eq.subs(knowns) for eq in base_equations]))
                 logger.debug(f"Substituted Base Equations: {substituted_base_equations}")
@@ -450,6 +451,8 @@ class GraphSolver:
                 else:
                     logger.debug("No solution found for substituted base equations")
 
+        if old_init_solutions != self.init_solutions and not self.is_updated:
+            self.is_updated = True
         logger.debug("Equation solving finished!")
         self.print_node_value()
 

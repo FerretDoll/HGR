@@ -679,18 +679,25 @@ def Logic2Graph(logic, target):
         else:
             numeric_length.append(findNumber(l))
     visual_length = [base_theorem.calc_distance_from_point_to_point(line[0], line[1]) for line in lines]
-    # 确保所有有效的视觉边长和实际边长都是浮点数
-    valid_pairs = [(float(v), float(l)) for v, l in zip(visual_length, numeric_length) if l != 'None' and l is not None]
-    # 计算所有有效对的缩放比例
-    scaling_factors = [l / v for v, l in valid_pairs]
-    if len(scaling_factors) > 0:
-        # 计算平均缩放比例
-        average_scaling_factor = sum(scaling_factors) / len(scaling_factors)
-        # 使用平均缩放比例处理visual_length中的所有边长
-        scaled_visual_length = [v * average_scaling_factor for v in visual_length]
-        node_visual_attr.extend(scaled_visual_length)
-    else:
-        node_visual_attr.extend(visual_length)
+    # 找到 visual_length 中的最大值
+    max_length = max(visual_length)
+    # 计算缩放比例
+    scale_factor = 100 / max_length
+    # 对所有值进行缩放
+    scaled_visual_length = [length * scale_factor for length in visual_length]
+    node_visual_attr.extend(scaled_visual_length)
+    # # 确保所有有效的视觉边长和实际边长都是浮点数
+    # valid_pairs = [(float(v), float(l)) for v, l in zip(visual_length, numeric_length) if l != 'None' and l is not None]
+    # # 计算所有有效对的缩放比例
+    # scaling_factors = [l / v for v, l in valid_pairs]
+    # if len(scaling_factors) > 0:
+    #     # 计算平均缩放比例
+    #     average_scaling_factor = sum(scaling_factors) / len(scaling_factors)
+    #     # 使用平均缩放比例处理visual_length中的所有边长
+    #     scaled_visual_length = [v * average_scaling_factor for v in visual_length]
+    #     node_visual_attr.extend(scaled_visual_length)
+    # else:
+    #     node_visual_attr.extend(visual_length)
     node.extend(['angle_' + ''.join(angle) for angle in angles])
     node_type.extend(['Angle' for angle in angles])
     for angleMeasure in angleMeasures:

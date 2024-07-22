@@ -255,7 +255,10 @@ def extract_variables_and_values(constraints, mapping_dict, global_graph, value_
         try:
             node_value = value_retriever(global_graph, node_name)
             if node_value == 'None':
-                return None
+                if 'OR' in constraints:
+                    node_value = node_name
+                else:
+                    return None
         except KeyError:
             return None  # 节点值未找到，返回失败
 
@@ -271,6 +274,7 @@ def verify_constraints(model_graph, global_graph, mapping_dict, global_symbols=N
     if init_solutions is not None:
         return evaluate_expression(new_constraints, global_symbols, init_solutions)
     else:
+        # for testing graph matching
         def safe_get_node_value(graph, node):
             value = graph.get_node_value(node)
             if isinstance(value, list):
