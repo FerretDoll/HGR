@@ -42,15 +42,16 @@ with open(log_file_path, 'r') as file:
                 # 使用data中的'id'作为键
                 filtered_data[data['id']] = data
             else:
-                if data['answer'] == 'None':
+                if data['answer'] == 'None' or data['answer'] is None:
                     output_data.append(data['id'])
         except json.JSONDecodeError as e:
+            output_data.append(data['id'])
             print(f"Error processing line: {modified_dict_str}")
             print(f"Error decoding JSON: {e}")
 
 # 将结果写入JSON文件
-# with open(correct_data_path, 'w') as json_file:
-#     json.dump(filtered_data, json_file, indent=4)
+with open(correct_data_path, 'w') as json_file:
+    json.dump(filtered_data, json_file, indent=4)
 
 with open('error_1.txt', 'w') as out:
     for id_ in sorted(output_data, key=int):

@@ -1,17 +1,77 @@
 import ctypes
 import re
+import subprocess
 import sys
-
 import sympy
+
 from sympy import sympify, simplify, And, Or, Eq, Symbol, Le, Ge, Lt, Gt
+from ctypes import c_char_p, CFUNCTYPE
 
 from reasoner.logic_graph import ModelGraph
 from reasoner.utils import filter_duplicates, group_by_id_sets
 from reasoner.config import TOLERANCE
 from utils.common_utils import calc_cross_angle
+from reasoner.config import logger
 
 # 定义回调函数类型
-CALLBACK_FUNC_TYPE = ctypes.CFUNCTYPE(None, ctypes.c_char_p)
+CALLBACK_FUNC_TYPE = CFUNCTYPE(None, c_char_p)
+
+
+def run_vf3_in_subprocess(pattern_data, target_data, options=b'-f vfe -u -s'):
+    solutions = []
+    try:
+        result = subprocess.run(
+            [sys.executable, "reasoner/run_vf3_subprocess.py", pattern_data, target_data, options],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+        solutions = result.stdout.decode('utf-8').strip()
+        if len(solutions) > 0:
+            solutions = solutions.split('|')
+    except subprocess.CalledProcessError as e:
+        pass
+
+    return solutions
+
+
+def run_vf3(pattern_data, target_data, options=b'-f vfe -u -s'):
+    solutions = []
+
+    # 定义回调函数
+    @CALLBACK_FUNC_TYPE
+    def result_callback(all_solutions_c_str):
+        nonlocal solutions
+        all_solutions_str = all_solutions_c_str.decode('utf-8')
+        if all_solutions_str:
+            solutions = all_solutions_str.split('|')  # 根据分隔符'|'分割字符串
+
+    try:
+        # 系统判断，以决定加载的共享库是.so还是.dll
+        if sys.platform.startswith('win'):
+            lib_path = 'vf3/bin/vf3.dll'
+            kernel32 = ctypes.WinDLL('kernel32.dll')
+            handle = kernel32.LoadLibraryW(lib_path)
+            libvf3 = ctypes.CDLL(lib_path)
+        else:
+            lib_path = 'vf3/bin/vf3.so'
+            libvf3 = ctypes.CDLL(lib_path)
+
+        # 设置 run_vf3 函数的参数类型和返回类型
+        libvf3.run_vf3.argtypes = [c_char_p, c_char_p, c_char_p, CALLBACK_FUNC_TYPE]
+
+        # 调用函数
+        libvf3.run_vf3(c_char_p(pattern_data.encode('utf-8')), c_char_p(target_data.encode('utf-8')),
+                       c_char_p(options), result_callback)
+
+    except RuntimeError as e:
+        logger.error(e)
+        return solutions
+    except Exception as e:
+        logger.error(e)
+        return solutions
+
+    return solutions
 
 
 def load_models_from_json(json_data):
@@ -48,36 +108,6 @@ def get_candidate_models_from_pool(model_pool, global_graph):
             candidate_models.append(model)
 
     return candidate_models
-
-
-def run_vf3(pattern_data, target_data, options=b'-f vfe -u -s'):
-    solutions = []
-
-    # 定义回调函数
-    @CALLBACK_FUNC_TYPE
-    def result_callback(all_solutions_c_str):
-        nonlocal solutions
-        all_solutions_str = all_solutions_c_str.decode('utf-8')
-        if all_solutions_str:
-            solutions = all_solutions_str.split('|')  # 根据分隔符'|'分割字符串
-
-    # 系统判断，以决定加载的共享库是.so还是.dll
-    if sys.platform.startswith('win'):
-        lib_path = 'vf3/bin/vf3.dll'
-        kernel32 = ctypes.WinDLL('kernel32.dll')
-        handle = kernel32.LoadLibraryW(lib_path)
-        libvf3 = ctypes.CDLL(lib_path)
-    else:
-        libvf3 = ctypes.CDLL('vf3/bin/vf3.so')
-
-    # 设置run_vf3函数的参数类型
-    libvf3.run_vf3.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p, CALLBACK_FUNC_TYPE]
-
-    # 调用函数
-    libvf3.run_vf3(ctypes.c_char_p(pattern_data.encode('utf-8')), ctypes.c_char_p(target_data.encode('utf-8')), options,
-                   result_callback)
-
-    return solutions
 
 
 def parse_mapping(model_graph, global_graph, mapping_str):
@@ -382,7 +412,8 @@ def match_graphs(model_graph, global_graph, global_symbols=None, init_solutions=
 
     mapping_dict_list = []
 
-    solution = run_vf3(model_graph.grf_data, global_graph.grf_data)
+    solution = run_vf3_in_subprocess(model_graph.grf_data, global_graph.grf_data)
+    # solution = run_vf3(model_graph.grf_data, global_graph.grf_data)
     constraints_valid = is_constraints_valid(model_graph)
     visual_constraints_valid = is_visual_constraints_valid(model_graph)
     if constraints_valid or visual_constraints_valid:

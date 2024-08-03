@@ -36,7 +36,6 @@ class ExtendedDefinition(BasicDefinition):
             for x in points:
                 line = self.find_all_points_on_line((x, angle))
                 valid_y = [y for y in points[1:] if y not in line]
-                assert len(valid_y) > 0, "Change %s to angle failed." % angle
                 for y in valid_y:
                     candi_angle = [x, angle, y]
                     if [y, angle, x] not in candi_angles:

@@ -210,7 +210,7 @@ def test_one_question(q_id):
             res = func_timeout(120, solve_question, args=(q_id,))
             logger.debug(res)
         except FunctionTimedOut:
-            logger.error(f"Error: solve_question timed out after 60 seconds")
+            logger.error(f"Error: solve_question timed out")
 
 
 if __name__ == "__main__":

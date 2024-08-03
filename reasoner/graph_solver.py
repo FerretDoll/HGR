@@ -1,4 +1,5 @@
-from itertools import combinations
+import concurrent.futures
+from itertools import combinations, islice
 
 from func_timeout import func_timeout, FunctionTimedOut
 from sympy import symbols, Eq, sympify, cos, sin, pi, solve, tan, parse_expr, Mul, Rational, N, \
@@ -6,7 +7,7 @@ from sympy import symbols, Eq, sympify, cos, sin, pi, solve, tan, parse_expr, Mu
 
 from reasoner.graph_matching import get_candidate_models_from_pool, match_graphs, apply_mapping_to_actions, \
     apply_mapping_to_equations
-from reasoner.config import UPPER_BOUND, logger
+from reasoner.config import UPPER_BOUND, logger, max_workers
 from utils.common_utils import isNumber, closest_to_number
 
 
@@ -110,6 +111,11 @@ class GraphSolver:
                     variables.append(list(common_vars))
 
         return groups, variables
+
+    @staticmethod
+    def chunked_iterable(iterable, size):
+        it = iter(iterable)
+        return iter(lambda: list(islice(it, size)), [])
 
     def print_node_value(self):
         # 打印更新后的图节点信息
@@ -367,7 +373,8 @@ class GraphSolver:
                 logger.debug("Start solving complex equations in step 2")
                 while True:
                     knows_added_step_2 = {}
-                    groups, variables = self.find_equations_and_common_variables(equation_vars, solved_equations, knowns)
+                    groups, variables = self.find_equations_and_common_variables(equation_vars, solved_equations,
+                                                                                 knowns)
                     if len(groups) == 0:
                         break
                     step_2_rounds += 1
@@ -389,7 +396,8 @@ class GraphSolver:
                                             knows_added_step_2[var] = value
                                         break
                                 except FunctionTimedOut as e:
-                                    logger.debug(f"Failed to solve complex equations within the time limit in step 2 (group {i})")
+                                    logger.debug(
+                                        f"Failed to solve complex equations within the time limit in step 2 (group {i})")
                                 except Exception as e:
                                     logger.error(f"Failed to solve complex equations in step 2 (group {i}): {e}")
                             else:
@@ -486,6 +494,32 @@ class GraphSolver:
         self.global_graph.update_grf_data()
         self.global_graph.update_grf_to_id()
 
+    def process_model_chunk(self, model_chunk):
+        total_actions = []
+        total_equations = []
+        for model in model_chunk:
+            model_used = False
+            try:
+                mapping_dict_list = func_timeout(10, match_graphs, args=(model, self.global_graph, self.symbols,
+                                                                         self.init_solutions))
+            except FunctionTimedOut:
+                continue
+            for mapping_dict in mapping_dict_list:
+                relation = model.generate_relation(mapping_dict)
+                if relation not in self.matched_relations:
+                    if not model_used:
+                        self.model_instance_eq_num[0] += 1
+                        model_used = True
+                    self.matched_relations.append(relation)
+                    logger.debug(relation)
+                    if len(model.actions) > 0:
+                        new_actions = apply_mapping_to_actions(model, mapping_dict)
+                        total_actions.extend(new_actions)
+                    if len(model.equations) > 0:
+                        new_equations = apply_mapping_to_equations(model, mapping_dict, self.symbols)
+                        total_equations.extend(new_equations)
+        return total_actions, total_equations
+
     def solve(self):
         if self.global_graph.target is None or len(self.global_graph.target) == 0:
             raise Exception("No target!")
@@ -543,23 +577,21 @@ class GraphSolver:
             added_equations = []
 
             candidate_models = get_candidate_models_from_pool(self.model_pool, self.global_graph)
-            for model in candidate_models:
-                model_used = False
-                mapping_dict_list = match_graphs(model, self.global_graph, self.symbols, self.init_solutions)
-                for mapping_dict in mapping_dict_list:
-                    relation = model.generate_relation(mapping_dict)
-                    if relation not in self.matched_relations:
-                        if not model_used:
-                            self.model_instance_eq_num[0] += 1
-                            model_used = True
-                        self.matched_relations.append(relation)
-                        logger.debug(relation)
-                        if len(model.actions) > 0:
-                            new_actions = apply_mapping_to_actions(model, mapping_dict)
-                            action_list.extend(new_actions)
-                        if len(model.equations) > 0:
-                            new_equations = apply_mapping_to_equations(model, mapping_dict, self.symbols)
-                            added_equations.extend(new_equations)
+
+            # 将 candidate_models 分成 max_workers 等份
+            chunk_size = (len(candidate_models) + max_workers - 1) // max_workers  # 计算每个线程处理的模型数，向上取整
+            chunks = self.chunked_iterable(candidate_models, chunk_size)
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+                futures = [
+                    executor.submit(self.process_model_chunk, chunk)
+                    for chunk in chunks
+                ]
+
+                for future in concurrent.futures.as_completed(futures):
+                    actions, equations = future.result()
+                    action_list.extend(actions)
+                    added_equations.extend(equations)
 
             if len(action_list) > 0:
                 self.is_updated = True
