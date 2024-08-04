@@ -8,6 +8,7 @@ from sympy import symbols, Eq, sympify, cos, sin, pi, solve, tan, parse_expr, Mu
 from reasoner.graph_matching import get_candidate_models_from_pool, match_graphs, apply_mapping_to_actions, \
     apply_mapping_to_equations
 from reasoner.config import UPPER_BOUND, logger, max_workers
+from reasoner.utils import is_debugging
 from utils.common_utils import isNumber, closest_to_number
 
 
@@ -117,16 +118,18 @@ class GraphSolver:
         it = iter(iterable)
         return iter(lambda: list(islice(it, size)), [])
 
-    def print_node_value(self):
+    def print_node_value(self, print_new=False):
         # 打印更新后的图节点信息
         for node, attrs in self.global_graph.graph.nodes(data=True):
             if attrs['value'] == 'None':
                 attrs['float_value'] = 'None'
             else:
                 attrs['float_value'] = [N(value) for value in attrs['value']]
-            # 检查节点是否在 current_new 集合中
-            prefix = '*' if node in self.current_new else ''
-            logger.debug(f"{prefix}Node {node}: {attrs}")
+            if print_new:
+                if node in self.current_new:
+                    logger.debug(f"*Node {node}: {attrs}")
+            else:
+                logger.debug(f"Node {node}: {attrs}")
 
     def remove_solved_equations(self, equations):
         equation_vars = [(eq, self.equation_variables(eq)) for eq in equations]
@@ -462,7 +465,7 @@ class GraphSolver:
         if old_init_solutions != self.init_solutions and not self.is_updated:
             self.is_updated = True
         logger.debug("Equation solving finished!")
-        self.print_node_value()
+        self.print_node_value(print_new=True)
 
     def execute_actions(self, action_list):
         """根据模型匹配的结果执行预设的动作"""
@@ -499,6 +502,7 @@ class GraphSolver:
         total_equations = []
         for model in model_chunk:
             model_used = False
+            mapping_dict_list = []
             try:
                 mapping_dict_list = func_timeout(10, match_graphs, args=(model, self.global_graph, self.symbols,
                                                                          self.init_solutions))
@@ -577,21 +581,25 @@ class GraphSolver:
             added_equations = []
 
             candidate_models = get_candidate_models_from_pool(self.model_pool, self.global_graph)
+            if is_debugging():
+                actions, equations = self.process_model_chunk(candidate_models)
+                action_list.extend(actions)
+                added_equations.extend(equations)
+            else:
+                # 将 candidate_models 分成 max_workers 等份
+                chunk_size = (len(candidate_models) + max_workers - 1) // max_workers  # 计算每个线程处理的模型数，向上取整
+                chunks = self.chunked_iterable(candidate_models, chunk_size)
 
-            # 将 candidate_models 分成 max_workers 等份
-            chunk_size = (len(candidate_models) + max_workers - 1) // max_workers  # 计算每个线程处理的模型数，向上取整
-            chunks = self.chunked_iterable(candidate_models, chunk_size)
+                with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+                    futures = [
+                        executor.submit(self.process_model_chunk, chunk)
+                        for chunk in chunks
+                    ]
 
-            with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-                futures = [
-                    executor.submit(self.process_model_chunk, chunk)
-                    for chunk in chunks
-                ]
-
-                for future in concurrent.futures.as_completed(futures):
-                    actions, equations = future.result()
-                    action_list.extend(actions)
-                    added_equations.extend(equations)
+                    for future in concurrent.futures.as_completed(futures):
+                        actions, equations = future.result()
+                        action_list.extend(actions)
+                        added_equations.extend(equations)
 
             if len(action_list) > 0:
                 self.is_updated = True

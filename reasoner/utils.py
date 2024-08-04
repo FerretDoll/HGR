@@ -1,3 +1,5 @@
+import sys
+
 import matplotlib.pyplot as plt
 import networkx as nx
 import plotly.graph_objects as go
@@ -5,6 +7,10 @@ from matplotlib.patches import ConnectionPatch
 from itertools import groupby
 
 from reasoner.config import NODE_TYPE_TO_INT, EDGE_TYPE_TO_INT
+
+
+def is_debugging():
+    return sys.gettrace() is not None
 
 
 def parse_grf_file(filename, force_undirected=False, edges_have_labels=True):

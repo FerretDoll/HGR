@@ -132,10 +132,16 @@ def approximately_equal(value1, value2, tolerance):
 
 
 def eval_with_none_check(expression, substitutions):
-    """对表达式进行求值，先检查是否有None值。"""
-    if any(value == 'None' or value is None for value in substitutions.values()):
-        return None  # 如果任何一个替换值是None，则返回None
-    return sympify(expression).evalf(subs=substitutions)
+    try:
+        """对表达式进行求值，先检查是否有None值。"""
+        if expression == '':
+            return None
+        if any(value == 'None' or value is None for value in substitutions.values()):
+            return None  # 如果任何一个替换值是None，则返回None
+        return sympify(expression).evalf(subs=substitutions)
+    except Exception as e:
+        logger.error(f"Error evaluating expression: {e}")
+        return None
 
 
 def parse_expression(expr_str, _placeholders, key_value_pair=None, is_visual=False, point_positions=None):
@@ -148,12 +154,12 @@ def parse_expression(expr_str, _placeholders, key_value_pair=None, is_visual=Fal
         _placeholders[_placeholder] = parsed_inner_expr
         expr_str = expr_str[:open_index] + _placeholder + expr_str[close_index + 1:]
 
-    if 'AND' in expr_str or 'OR' in expr_str:
-        if 'OR' in expr_str:
-            parts = expr_str.split('OR')
+    if ' AND ' in expr_str or ' OR ' in expr_str:
+        if ' OR ' in expr_str:
+            parts = expr_str.split(' OR ')
             operator = Or
         else:
-            parts = expr_str.split('AND')
+            parts = expr_str.split(' AND ')
             operator = And
         return operator(*[parse_expression(part.strip(), _placeholders, key_value_pair, is_visual, point_positions)
                           for part in parts])
@@ -228,22 +234,26 @@ def replace_variables_equation(equation, global_symbols):
 
 def evaluate_expression(constraints, global_symbols=None, init_solutions=None):
     placeholders = {}
-    parsed_expr = parse_expression(constraints, placeholders, key_value_pair=None, is_visual=False)
+    try:
+        parsed_expr = parse_expression(constraints, placeholders, key_value_pair=None, is_visual=False)
 
-    if isinstance(parsed_expr, bool):
-        return parsed_expr
+        if isinstance(parsed_expr, bool):
+            return parsed_expr
 
-    # 循环替换占位符直到没有更多占位符为止
-    while any(p in str(parsed_expr) for p in placeholders):
-        for placeholder, expr in placeholders.items():
-            parsed_expr = parsed_expr.subs(sympify(placeholder), expr)
+        # 循环替换占位符直到没有更多占位符为止
+        while any(p in str(parsed_expr) for p in placeholders):
+            for placeholder, expr in placeholders.items():
+                parsed_expr = parsed_expr.subs(sympify(placeholder), expr)
 
-    if global_symbols is not None:
-        parsed_expr = replace_variables_equation(parsed_expr, global_symbols)
-    if init_solutions is not None:
-        parsed_expr = parsed_expr.subs({k: sympify(v) for k, v in init_solutions.items()})
+        if global_symbols is not None:
+            parsed_expr = replace_variables_equation(parsed_expr, global_symbols)
+        if init_solutions is not None:
+            parsed_expr = parsed_expr.subs({k: sympify(v) for k, v in init_solutions.items()})
+    except Exception as e:
+        logger.error(f"Error occurred while evaluating expression: {e}")
+        return False
+
     simplified_expr = simplify(parsed_expr)
-
     # 检查是否为布尔值
     is_valid = True if isinstance(simplified_expr, sympy.logic.boolalg.BooleanTrue) else False
 
@@ -252,20 +262,23 @@ def evaluate_expression(constraints, global_symbols=None, init_solutions=None):
 
 def evaluate_expression_visual(constraints, key_value_pair, point_positions):
     placeholders = {}
-    parsed_expr = parse_expression(constraints, placeholders, key_value_pair, is_visual=True,
-                                   point_positions=point_positions)
+    try:
+        parsed_expr = parse_expression(constraints, placeholders, key_value_pair, is_visual=True,
+                                       point_positions=point_positions)
+        if isinstance(parsed_expr, bool):
+            return parsed_expr
 
-    if isinstance(parsed_expr, bool):
-        return parsed_expr
+        # 循环替换占位符直到没有更多占位符为止
+        while any(p in str(parsed_expr) for p in placeholders):
+            for placeholder, expr in placeholders.items():
+                parsed_expr = parsed_expr.subs(sympify(placeholder), expr)
 
-    # 循环替换占位符直到没有更多占位符为止
-    while any(p in str(parsed_expr) for p in placeholders):
-        for placeholder, expr in placeholders.items():
-            parsed_expr = parsed_expr.subs(sympify(placeholder), expr)
+        equation_to_check = parsed_expr.subs({k: sympify(v) for k, v in key_value_pair.items()})
+    except Exception as e:
+        logger.error(f"Error occurred while evaluating visual expression: {e}")
+        return False
 
-    equation_to_check = parsed_expr.subs({k: sympify(v) for k, v in key_value_pair.items()})
     simplified_expr = simplify(equation_to_check)
-
     # 检查是否为布尔值
     is_valid = True if isinstance(simplified_expr, sympy.logic.boolalg.BooleanTrue) else False
 
@@ -377,18 +390,21 @@ def apply_mapping_to_equations(model_graph, mapping, global_symbols):
     equations = model_graph.equations
     new_equations = []
 
-    for equation in equations:
-        # 替换方程中所有匹配到的变量
-        new_equation_str = replace_variables_str(str(equation), mapping, global_symbols)
-        if '=' in new_equation_str:
-            lhs, rhs = map(str.strip, new_equation_str.split('='))
-            new_equation = Eq(sympify(lhs), sympify(rhs))
-        else:
-            new_equation = sympify(new_equation_str)
+    try:
+        for equation in equations:
+            # 替换方程中所有匹配到的变量
+            new_equation_str = replace_variables_str(str(equation), mapping, global_symbols)
+            if '=' in new_equation_str:
+                lhs, rhs = map(str.strip, new_equation_str.split('='))
+                new_equation = Eq(sympify(lhs), sympify(rhs))
+            else:
+                new_equation = sympify(new_equation_str)
 
-        # 更新方程，确保所有符号都是全局符号表中的符号
-        new_equation = replace_variables_equation(new_equation, global_symbols)
-        new_equations.append(new_equation)
+            # 更新方程，确保所有符号都是全局符号表中的符号
+            new_equation = replace_variables_equation(new_equation, global_symbols)
+            new_equations.append(new_equation)
+    except Exception as e:
+        logger.error(f"Error occurred while applying mapping to equations: {e}")
 
     return new_equations
 
@@ -412,35 +428,38 @@ def match_graphs(model_graph, global_graph, global_symbols=None, init_solutions=
 
     mapping_dict_list = []
 
-    solution = run_vf3_in_subprocess(model_graph.grf_data, global_graph.grf_data)
-    # solution = run_vf3(model_graph.grf_data, global_graph.grf_data)
-    constraints_valid = is_constraints_valid(model_graph)
-    visual_constraints_valid = is_visual_constraints_valid(model_graph)
-    if constraints_valid or visual_constraints_valid:
-        grouped_list = group_by_id_sets(solution)
-        for group in grouped_list:
-            for s in group:
+    try:
+        solution = run_vf3_in_subprocess(model_graph.grf_data, global_graph.grf_data)
+        # solution = run_vf3(model_graph.grf_data, global_graph.grf_data)
+        constraints_valid = is_constraints_valid(model_graph)
+        visual_constraints_valid = is_visual_constraints_valid(model_graph)
+        if constraints_valid or visual_constraints_valid:
+            grouped_list = group_by_id_sets(solution)
+            for group in grouped_list:
+                for s in group:
+                    mapping_dict = parse_mapping(model_graph, global_graph, s)
+
+                    # 检查视觉约束，如果约束有效则验证它们，否则默认为True
+                    visual_constraints_flag = (not is_visual_constraints_valid(model_graph) or
+                                               verify_visual_constraints(model_graph, global_graph, mapping_dict,
+                                                                         global_symbols))
+
+                    if visual_constraints_flag:
+                        # 检查一般约束，如果约束有效则验证它们，否则默认为True
+                        constraints_flag = (not is_constraints_valid(model_graph) or
+                                            verify_constraints(model_graph, global_graph, mapping_dict, global_symbols,
+                                                               init_solutions))
+
+                        # 如果两个标志都为True，则添加到列表并跳出当前循环
+                        if constraints_flag:
+                            mapping_dict_list.append(mapping_dict)
+                            break  # 退出当前 group 的循环
+        else:
+            solution = filter_duplicates(solution)
+            for s in solution:
                 mapping_dict = parse_mapping(model_graph, global_graph, s)
-
-                # 检查视觉约束，如果约束有效则验证它们，否则默认为True
-                visual_constraints_flag = (not is_visual_constraints_valid(model_graph) or
-                                           verify_visual_constraints(model_graph, global_graph, mapping_dict,
-                                                                     global_symbols))
-
-                if visual_constraints_flag:
-                    # 检查一般约束，如果约束有效则验证它们，否则默认为True
-                    constraints_flag = (not is_constraints_valid(model_graph) or
-                                        verify_constraints(model_graph, global_graph, mapping_dict, global_symbols,
-                                                           init_solutions))
-
-                    # 如果两个标志都为True，则添加到列表并跳出当前循环
-                    if constraints_flag:
-                        mapping_dict_list.append(mapping_dict)
-                        break  # 退出当前 group 的循环
-    else:
-        solution = filter_duplicates(solution)
-        for s in solution:
-            mapping_dict = parse_mapping(model_graph, global_graph, s)
-            mapping_dict_list.append(mapping_dict)
+                mapping_dict_list.append(mapping_dict)
+    except Exception as e:
+        logger.error(f"An error occurred in graph matching: {e}")
 
     return mapping_dict_list

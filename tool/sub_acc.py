@@ -123,8 +123,8 @@ def print_type_acc(Result_Acc):
 
 
 if __name__ == '__main__':
-    st = 0
-    ed = 596
+    st = 2401
+    ed = 3001
     result_file = 'output/correct_data.json'
 
     DATA_PATH = config.db_dir_single

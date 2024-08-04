@@ -306,7 +306,7 @@ def create_sympy_equation(logic, target):
             return sum(side_lines)
     elif target[0] == 'Sector':
         O, A, B = target[1:]
-        angle_measure = symbols('angle_' + ''.join(logic.get_same_angle_key((O, A, B))))
+        angle_measure = symbols('angle_' + ''.join(logic.get_same_angle_key((A, O, B))))
         radius = symbols('line_' + ''.join(sorted(O + A)))
         return radius**2 * angle_measure / 2
     elif target[0] == 'ScaleFactorOf':

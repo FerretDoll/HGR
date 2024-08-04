@@ -14,7 +14,7 @@ from GeoDRL.logic_solver import LogicSolver
 from reasoner.graph_matching import load_models_from_json, get_candidate_models_from_pool, match_graphs
 from reasoner.logic_graph import GlobalGraph
 from reasoner.graph_solver import GraphSolver
-from reasoner.utils import json_to_gml, draw_graph_from_gml
+from reasoner.utils import json_to_gml, draw_graph_from_gml, is_debugging
 from reasoner.config import logger, eval_logger
 from reasoner import config
 
@@ -83,6 +83,9 @@ def solve_question(q_id):
                 if check_answer(answer_degrees, candidate_value_list, gt_id):
                     res["correctness"] = "yes"
                     answer = answer_degrees
+                elif check_answer(360 - answer_degrees, candidate_value_list, gt_id):
+                    res["correctness"] = "yes"
+                    answer = 360 - answer_degrees
 
         res["answer"] = answer
         logger.debug("Answer: %s", answer)
@@ -180,10 +183,6 @@ def test_draw_global_graph(q_id):
     logic_forms = get_logic_forms(q_id)
     parser, target = Text2Logic(logic_forms)
     _ = get_global_graph(parser, target, True)
-
-
-def is_debugging():
-    return sys.gettrace() is not None
 
 
 def check_id_in_error_ids(question_id, error_file):
