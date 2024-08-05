@@ -6,3 +6,5 @@ kanren
 matplotlib
 antlr4-python3-runtime==4.11
 tqdm
+numpy
+cython

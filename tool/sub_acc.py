@@ -1,3 +1,4 @@
+import ast
 import json
 import math
 import random
@@ -6,6 +7,10 @@ import argparse
 import re
 
 from reasoner import config
+
+
+with open(config.error_ids_path, 'r') as file:
+    error_ids = {int(line.strip()) for line in file}  # 确保错误ID是整数
 
 
 def quad_alias(diagram_type, QuadAlias):
@@ -48,7 +53,7 @@ def build_dict(data_path, st, ed):
         QuadAlias[quad] = "Quad"
 
     for idx, data_id in enumerate(file_list):
-        if idx < st or idx >= ed:
+        if idx < st or idx >= ed or idx in error_ids:
             continue
         with open(os.path.join(data_path, data_id, "data.json"), 'r') as f:
             data = json.load(f)
@@ -134,9 +139,6 @@ if __name__ == '__main__':
     # read the result json file
     result_data = json.load(open(result_file))
 
-    with open(config.error_ids_path, 'r') as file:
-        error_ids = {int(line.strip()) for line in file}  # 确保错误ID是整数
-
     # 生成所有题目ID并排除错误ID
     all_question_ids = set(range(st, ed))
     valid_question_ids = list(all_question_ids - error_ids)  # 将集合转换为列表
@@ -146,9 +148,16 @@ if __name__ == '__main__':
     solved_correct_list = []
     # solved_wrong_list = []
     unsolved_list = []
+    total_model_num = 0
+    total_instance_num = 0
+    total_eq_num = 0
     for i in range(total):
         id = str(valid_question_ids[i])
         if id in result_data:
+            model_instance_eq_num = ast.literal_eval(result_data[id]["model_instance_eq_num"])
+            total_model_num += int(model_instance_eq_num[0])
+            total_instance_num += int(model_instance_eq_num[1])
+            total_eq_num += int(model_instance_eq_num[2])
             if result_data[id]["correctness"] == "yes":
                 solved_correct_list.append(id)
             # elif result_data[str(i)]["answer"] != None:
@@ -166,7 +175,10 @@ if __name__ == '__main__':
     print("[File]:\t  ", result_file)
     print("[Acc]:\t   {}/{} = {:.2%}".format(correct, total, correct / total))
     print_type_acc(Acc)
+    print("Average Models: ", total_model_num / total)
+    print("Average Instances: ", total_instance_num / total)
+    print("Average Equations: ", total_eq_num / total)
 
-    with open('output/wrong_data.txt', 'w') as out:
-        for id_ in sorted(unsolved_list, key=int):
-            out.write(str(id_) + '\n')
+    # with open('output/wrong_data.txt', 'w') as out:
+    #     for id_ in sorted(unsolved_list, key=int):
+    #         out.write(str(id_) + '\n')

@@ -1687,11 +1687,11 @@
   "Triangle_Similar": {
     "relation": "Similar($triangle_1, $triangle_2)",
     "constraints": "",
-    "visual_constraints": "line_1 / line_4 = line_2 / line_5 AND line_2 / line_5 = line_3 / line_6 AND angle_1 = angle_4 AND angle_2 = angle_5 AND angle_3 = angle_6",
+    "visual_constraints": "line_1 / line_6 = line_2 / line_5 AND line_2 / line_5 = line_3 / line_4 AND angle_1 = angle_4 AND angle_2 = angle_5 AND angle_3 = angle_6",
     "actions": [],
     "equations": [
-      "line_1 / line_4 = line_2 / line_5",
-      "line_2 / line_5 = line_3 / line_6",
+      "line_1 / line_6 = line_2 / line_5",
+      "line_2 / line_5 = line_3 / line_4",
       "angle_1 = angle_4",
       "angle_2 = angle_5",
       "angle_3 = angle_6"
@@ -1950,12 +1950,12 @@
   "Triangle_Congruent": {
     "relation": "Congruent($triangle_1, $triangle_2)",
     "constraints": "",
-    "visual_constraints": "line_1 = line_4 AND line_2 = line_5 AND line_3 = line_6 AND angle_1 = angle_4 AND angle_2 = angle_5 AND angle_3 = angle_6",
+    "visual_constraints": "line_1 = line_6 AND line_2 = line_5 AND line_3 = line_4 AND angle_1 = angle_4 AND angle_2 = angle_5 AND angle_3 = angle_6",
     "actions": [],
     "equations": [
-      "line_1 = line_4",
+      "line_1 = line_6",
       "line_2 = line_5",
-      "line_3 = line_6",
+      "line_3 = line_4",
       "angle_1 = angle_4",
       "angle_2 = angle_5",
       "angle_3 = angle_6"
@@ -3549,7 +3549,7 @@
   "Triangle_Similar_4": {
     "relation": "Similar($triangle_1,$triangle_2)",
     "constraints": "",
-    "visual_constraints": "angle_2 = angle_4 AND angle_3 = angle_5",
+    "visual_constraints": "line_1 / line_4 = line_2 / line_6 AND line_3 / line_5 = line_2 / line_6 AND angle_2 = angle_4 AND angle_3 = angle_5",
     "actions": [],
     "equations": [
       "line_1 / line_4 = line_2 / line_6",
@@ -8832,7 +8832,7 @@
     "grf_data": "16\n0 7\n1 2\n2 2\n3 2\n4 1\n5 1\n6 2\n7 2\n8 2\n9 2\n10 2\n11 2\n12 3\n13 3\n14 3\n15 3\n0\n2\n1 0 13\n1 12 15\n4\n2 0 13\n2 1 4\n2 15 15\n2 14 15\n0\n5\n4 3 11\n4 7 7\n4 5 1\n4 13 12\n4 15 12\n6\n5 3 11\n5 6 7\n5 10 11\n5 11 11\n5 12 12\n5 14 12\n2\n6 0 13\n6 14 15\n2\n7 0 13\n7 15 15\n2\n8 4 11\n8 13 15\n2\n9 4 11\n9 15 15\n1\n10 14 15\n1\n11 12 15\n2\n12 0 10\n12 6 15\n3\n13 0 10\n13 1 15\n13 7 15\n1\n14 0 10\n1\n15 0 10\n"
   },
   "Polygon_Area_Theorem": {
-    "relation": "Equals(AreaOf($polygon_bcde),Div(Mul($line_bd,$line_ce),2))",
+    "relation": "AreaOf($polygon_bcde)",
     "constraints": "angle_bae = pi / 2",
     "visual_constraints": "",
     "actions": [],

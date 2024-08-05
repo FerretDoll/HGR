@@ -568,9 +568,11 @@ class GraphSolver:
                     logger.error(f"Error parsing value '{node_value}' for node '{node_id}': {e}")
 
         init_equations = [item for sublist in list(self.node_value_equations_dict.values()) for item in sublist]
+        init_equations.extend(self.global_graph.equations)
         init_solutions = func_timeout(20, solve, kwargs=dict(f=init_equations, dict=True))
         estimate = lambda sol: sum([str(expr)[0] != '-' for expr in sol.values()])  # negative value
         self.init_solutions = max(init_solutions, key=estimate)
+        self.update_graph_node_values(self.init_solutions)
 
         while self.is_updated and self.rounds < self.upper_bound:
             self.rounds += 1

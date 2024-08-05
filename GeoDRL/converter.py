@@ -1,7 +1,7 @@
 from itertools import product, permutations
 
 from sympy import rad, pi, sympify, Mul, Number, Add, Integer, Float, Symbol, cos, tan, cot, sqrt, symbols, sin, \
-    Rational
+    Rational, Eq
 from pyparsing import ParseResults
 
 from GeoDRL.extended_definition import ExtendedDefinition
@@ -405,13 +405,38 @@ def Logic2Graph(logic, target):
             for v in val:
                 if 'angle' in str(v):
                     if '_' in str(v):
-                        _, result = str(v).split('_', 1)
-                        if not logic.check_same_angle(angle, result):
-                            same_angle = logic.get_same_angle_key(result)
-                            if same_angle != angle and same_angle not in added_angle_symbol:
-                                v = Symbol("angle_" + ''.join([str(ch) for ch in same_angle]))
-                                added_angle_symbol.append(same_angle)
-                            new_val.append(v)
+                        # _, result = str(v).split('_', 1)
+                        # if not logic.check_same_angle(angle, result):
+                        #     same_angle = logic.get_same_angle_key(result)
+                        #     if same_angle != angle and same_angle not in added_angle_symbol:
+                        #         v = Symbol("angle_" + ''.join([str(ch) for ch in same_angle]))
+                        #         added_angle_symbol.append(same_angle)
+                        #     new_val.append(v)
+                        expr = sympify(v)
+                        expr_symbols = list(expr.free_symbols)
+                        if len(expr_symbols) == 1:
+                            symbol_str = str(expr_symbols[0])
+                            if 'angle_' in symbol_str:
+                                angle_name = symbol_str.split('angle_')[1]
+                                if not logic.check_same_angle(angle, angle_name):
+                                    same_angle = logic.get_same_angle_key(angle_name)
+                                    if same_angle != angle and same_angle not in added_angle_symbol:
+                                        angle_symbol = Symbol("angle_" + ''.join([str(ch) for ch in same_angle]))
+                                        expr = expr.subs(expr_symbols[0], angle_symbol)
+                                        added_angle_symbol.append(same_angle)
+                                    new_val.append(expr)
+                        else:
+                            for symbol in expr_symbols:
+                                symbol_str = str(symbol)
+                                if 'angle_' in symbol_str:
+                                    angle_name = symbol_str.split('angle_')[1]
+                                    same_angle = logic.get_same_angle_key(angle_name)
+                                    if same_angle != angle and same_angle not in added_angle_symbol:
+                                        angle_symbol = Symbol("angle_" + ''.join([str(ch) for ch in same_angle]))
+                                        expr = expr.subs(symbol, angle_symbol)
+                                        added_angle_symbol.append(same_angle)
+                            new_val.append(expr)
+
                     else:
                         new_val.append(v)
                 elif v != 180:
@@ -737,6 +762,10 @@ def Logic2Graph(logic, target):
                 target_node.append(t)
 
     target_equation = create_sympy_equation(logic, target)
+    x = var()
+    y = var()
+    res = run(0, (x, y), logic.Equation(x, y))
+    equations = [Eq(lhs, rhs) for lhs, rhs in res]
 
     for connected_st, connected_ed in connected_points:
         edge_st_index.append(node.index(connected_st))
@@ -868,7 +897,8 @@ def Logic2Graph(logic, target):
                          if isNumber(_) and '.' in str(_) else str(_) for _ in attr_list]
             new_node_attr.append(attr_list)
 
-    return {"node": node,
+    return {
+            "node": node,
             "node_type": node_type,
             "node_attr": new_node_attr,
             "node_visual_attr": node_visual_attr,
@@ -876,4 +906,6 @@ def Logic2Graph(logic, target):
             "edge_attr": edge_attr,
             "target_node": target_node,
             "target_equation": target_equation,
-            "point_positions": logic.point_positions}
+            "point_positions": logic.point_positions,
+            "equations": equations
+            }
