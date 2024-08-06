@@ -14,11 +14,10 @@ from GeoDRL.logic_parser import LogicParser
 from GeoDRL.converter import Logic2Graph
 from func_timeout import func_timeout, FunctionTimedOut
 
-
 from agent.graph_dataset import __preprocess_item
 from agent.model.graphtransformer.model import GraphormerEncoder
 from agent.model.graphtransformer.model_args import ModelArgs
-from agent.tools.gen_vocab import reparse_graph_data
+from agent.gen_vocab import reparse_graph_data
 
 import random
 random.seed(0)

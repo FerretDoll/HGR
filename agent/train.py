@@ -10,13 +10,12 @@ import copy
 import torch
 import torch.nn as nn
 import time
-import logging
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm, trange
 from collections import namedtuple, deque
 
 from agent.graph_dataset import onehop_collate_fn, __preprocess_item
-from agent.tools.gen_vocab import reparse_graph_data
+from agent.gen_vocab import reparse_graph_data
 from agent.model.graphtransformer.model import GraphormerEncoder
 from agent.model.graphtransformer.model_args import ModelArgs
 

@@ -76,15 +76,17 @@ def run_vf3(pattern_data, target_data, options=b'-f vfe -u -s'):
 
 def load_models_from_json(json_data):
     model_pool = []  # 用于存储所有实例化的模型图
+    model_id_map = {}
 
     # 遍历JSON数据中的每个模型键和对应的值
-    for model_id, model_content in json_data.items():
+    for model_id, (model_name, model_content) in enumerate(json_data.items(), start=0):
         # 使用ModelGraph的from_json类方法实例化每个模型图
-        model_graph = ModelGraph.from_json(model_content, model_id)
+        model_graph = ModelGraph.from_json(model_content, model_name)
         # 将实例化的模型图添加到模型池列表中
         model_pool.append(model_graph)
+        model_id_map[model_graph.model_id] = model_id
 
-    return model_pool
+    return model_pool, model_id_map
 
 
 def get_candidate_models_from_pool(model_pool, global_graph):

@@ -775,34 +775,34 @@ def Logic2Graph(logic, target):
         edge_st_index.append(node.index(endpoint))
         edge_ed_index.append(node.index(line))
         edge_attr.append('Endpoint')
-    for line, endpoint in endpoint_R_line:
-        edge_st_index.append(node.index(line))
-        edge_ed_index.append(node.index(endpoint))
-        edge_attr.append('Endpoint_R')
+    # for line, endpoint in endpoint_R_line:
+    #     edge_st_index.append(node.index(line))
+    #     edge_ed_index.append(node.index(endpoint))
+    #     edge_attr.append('Endpoint_R')
     for point, line in pointLiesOnLine:
         edge_st_index.append(node.index(point))
         edge_ed_index.append(node.index(line))
         edge_attr.append('LiesOnLine')
-    for line, point in pointLiesOnLine_R:
-        edge_st_index.append(node.index(line))
-        edge_ed_index.append(node.index(point))
-        edge_attr.append('LiesOnLine_R')
+    # for line, point in pointLiesOnLine_R:
+    #     edge_st_index.append(node.index(line))
+    #     edge_ed_index.append(node.index(point))
+    #     edge_attr.append('LiesOnLine_R')
     for point, angle in vertex_angle:
         edge_st_index.append(node.index(point))
         edge_ed_index.append(node.index(angle))
         edge_attr.append('Vertex')
-    for angle, point in vertex_R_angle:
-        edge_st_index.append(node.index(angle))
-        edge_ed_index.append(node.index(point))
-        edge_attr.append('Vertex_R')
+    # for angle, point in vertex_R_angle:
+    #     edge_st_index.append(node.index(angle))
+    #     edge_ed_index.append(node.index(point))
+    #     edge_attr.append('Vertex_R')
     for point, angle in sidePoint_angle:
         edge_st_index.append(node.index(point))
         edge_ed_index.append(node.index(angle))
         edge_attr.append('Sidepoint')
-    for angle, point in sidePoint_R_angle:
-        edge_st_index.append(node.index(angle))
-        edge_ed_index.append(node.index(point))
-        edge_attr.append('Sidepoint_R')
+    # for angle, point in sidePoint_R_angle:
+    #     edge_st_index.append(node.index(angle))
+    #     edge_ed_index.append(node.index(point))
+    #     edge_attr.append('Sidepoint_R')
     for line, angle in AngleSide:
         edge_st_index.append(node.index(line))
         edge_ed_index.append(node.index(angle))
@@ -811,42 +811,42 @@ def Logic2Graph(logic, target):
         edge_st_index.append(node.index(point))
         edge_ed_index.append(node.index(arc))
         edge_attr.append('Center')
-    for arc, point in center_R_arc:
-        edge_st_index.append(node.index(arc))
-        edge_ed_index.append(node.index(point))
-        edge_attr.append('Center_R')
+    # for arc, point in center_R_arc:
+    #     edge_st_index.append(node.index(arc))
+    #     edge_ed_index.append(node.index(point))
+    #     edge_attr.append('Center_R')
     for point, arc in endpoint_arc:
         edge_st_index.append(node.index(point))
         edge_ed_index.append(node.index(arc))
         edge_attr.append('Endpoint')
-    for arc, point in endpoint_R_arc:
-        edge_st_index.append(node.index(arc))
-        edge_ed_index.append(node.index(point))
-        edge_attr.append('Endpoint_R')
+    # for arc, point in endpoint_R_arc:
+    #     edge_st_index.append(node.index(arc))
+    #     edge_ed_index.append(node.index(point))
+    #     edge_attr.append('Endpoint_R')
     for point, circle in center_cirlce:
         edge_st_index.append(node.index(point))
         edge_ed_index.append(node.index(circle))
         edge_attr.append('Center')
-    for circle, point in center_R_cirlce:
-        edge_st_index.append(node.index(circle))
-        edge_ed_index.append(node.index(point))
-        edge_attr.append('Center_R')
+    # for circle, point in center_R_cirlce:
+    #     edge_st_index.append(node.index(circle))
+    #     edge_ed_index.append(node.index(point))
+    #     edge_attr.append('Center_R')
     for point, circle in pointLiesOnCircle:
         edge_st_index.append(node.index(point))
         edge_ed_index.append(node.index(circle))
         edge_attr.append('LiesOnCircle')
-    for circle, point in pointLiesOnCircle_R:
-        edge_st_index.append(node.index(circle))
-        edge_ed_index.append(node.index(point))
-        edge_attr.append('LiesOnCircle_R')
+    # for circle, point in pointLiesOnCircle_R:
+    #     edge_st_index.append(node.index(circle))
+    #     edge_ed_index.append(node.index(point))
+    #     edge_attr.append('LiesOnCircle_R')
     for point, poly in Vertex:
         edge_st_index.append(node.index(point))
         edge_ed_index.append(node.index(poly))
         edge_attr.append('Vertex')
-    for poly, point in Vertex_R:
-        edge_st_index.append(node.index(poly))
-        edge_ed_index.append(node.index(point))
-        edge_attr.append('Vertex_R')
+    # for poly, point in Vertex_R:
+    #     edge_st_index.append(node.index(poly))
+    #     edge_ed_index.append(node.index(point))
+    #     edge_attr.append('Vertex_R')
     # for st, ed in Equal:
     #     edge_st_index.append(node.index(st))
     #     edge_ed_index.append(node.index(ed))
@@ -863,18 +863,18 @@ def Logic2Graph(logic, target):
         edge_st_index.append(node.index(line))
         edge_ed_index.append(node.index(poly))
         edge_attr.append('Side')
-    for poly, line in Side_R:
-        edge_st_index.append(node.index(poly))
-        edge_ed_index.append(node.index(line))
-        edge_attr.append('Side_R')
+    # for poly, line in Side_R:
+    #     edge_st_index.append(node.index(poly))
+    #     edge_ed_index.append(node.index(line))
+    #     edge_attr.append('Side_R')
     for angle, poly in Interior:
         edge_st_index.append(node.index(angle))
         edge_ed_index.append(node.index(poly))
         edge_attr.append('Interior')
-    for poly, angle in Interior_R:
-        edge_st_index.append(node.index(poly))
-        edge_ed_index.append(node.index(angle))
-        edge_attr.append('Interior_R')
+    # for poly, angle in Interior_R:
+    #     edge_st_index.append(node.index(poly))
+    #     edge_ed_index.append(node.index(angle))
+    #     edge_attr.append('Interior_R')
     for poly1, poly2 in Congruent:
         edge_st_index.append(node.index(poly1))
         edge_ed_index.append(node.index(poly2))

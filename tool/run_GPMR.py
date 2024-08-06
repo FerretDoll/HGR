@@ -14,7 +14,7 @@ from GeoDRL.logic_solver import LogicSolver
 from reasoner.graph_matching import load_models_from_json, get_candidate_models_from_pool, match_graphs
 from reasoner.logic_graph import GlobalGraph
 from reasoner.graph_solver import GraphSolver
-from reasoner.utils import json_to_gml, draw_graph_from_gml, is_debugging
+from reasoner.utils import dict_to_gml, draw_graph_from_gml, is_debugging
 from reasoner.config import logger, eval_logger
 from reasoner import config
 
@@ -23,7 +23,7 @@ with open(config.diagram_logic_forms_json_path, 'r') as diagram_file:
 with open(config.text_logic_forms_json_path, 'r') as text_file:
     text_logic_forms_json = json.load(text_file)
 with open(config.model_pool_path, 'r') as model_pool_file:
-    model_pool = load_models_from_json(json.load(model_pool_file))
+    model_pool, model_id_map = load_models_from_json(json.load(model_pool_file))
 
 
 def get_logic_forms(q_id):
@@ -39,13 +39,13 @@ def get_global_graph(parser, target, draw_graph=False):
     logger.debug("Target: %s", target)
     solver = LogicSolver(parser.logic)
     solver.initSearch()
-    graph_json = Logic2Graph(solver.logic, target)
+    graph_dict = Logic2Graph(solver.logic, target)
 
     if draw_graph:
-        graph_gml = json_to_gml(graph_json, False)
+        graph_gml = dict_to_gml(graph_dict, False)
         draw_graph_from_gml(graph_gml)
 
-    return GlobalGraph.from_json(graph_json)
+    return GlobalGraph.from_dict(graph_dict)
 
 
 def solve_question(q_id):
@@ -62,7 +62,6 @@ def solve_question(q_id):
         parser, target = Text2Logic(logic_forms)
         res["target"] = target
         global_graph = get_global_graph(parser, target)
-
         graph_solver = GraphSolver(global_graph, model_pool)
         graph_solver.solve()
         logger.debug("Total Rounds: %s", graph_solver.rounds)
@@ -165,7 +164,7 @@ def test_graph_matching(q_id):
     parser, target = Text2Logic(logic_forms)
     global_graph = get_global_graph(parser, target)
     with open(config.model_pool_test_path, 'r') as model_pool_file:
-        model_pool = load_models_from_json(json.load(model_pool_file))
+        model_pool, _ = load_models_from_json(json.load(model_pool_file))
 
     candidate_models = get_candidate_models_from_pool(model_pool, global_graph)
     for model in candidate_models:

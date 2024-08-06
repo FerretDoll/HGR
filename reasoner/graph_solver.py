@@ -242,8 +242,9 @@ class GraphSolver:
 
     def solve_equations(self):
         old_init_solutions = self.init_solutions.copy()
-        self.current_new = set()
+        self.equations.extend(self.model_equations)
         self.equations = list(set(self.equations))
+        self.current_new = set()
         # 创建两个列表，一个用于存放基本方程，一个用于存放包含三角函数的方程
         base_equations = []
         complex_equations = []
@@ -497,34 +498,42 @@ class GraphSolver:
         self.global_graph.update_grf_data()
         self.global_graph.update_grf_to_id()
 
+    def process_one_model(self, model):
+        new_actions = []
+        new_equations = []
+        model_used = False
+        try:
+            mapping_dict_list = func_timeout(10, match_graphs, args=(model, self.global_graph, self.symbols,
+                                                                     self.init_solutions))
+        except FunctionTimedOut:
+            return new_actions, new_equations
+        for mapping_dict in mapping_dict_list:
+            relation = model.generate_relation(mapping_dict)
+            if relation not in self.matched_relations:
+                if not model_used:
+                    self.model_instance_eq_num[0] += 1
+                    model_used = True
+                self.matched_relations.append(relation)
+                logger.debug(relation)
+                if len(model.actions) > 0:
+                    new_actions.extend(apply_mapping_to_actions(model, mapping_dict))
+                if len(model.equations) > 0:
+                    new_equations.extend(apply_mapping_to_equations(model, mapping_dict, self.symbols))
+
+        return new_actions, new_equations
+
     def process_model_chunk(self, model_chunk):
         total_actions = []
         total_equations = []
+
         for model in model_chunk:
-            model_used = False
-            mapping_dict_list = []
-            try:
-                mapping_dict_list = func_timeout(10, match_graphs, args=(model, self.global_graph, self.symbols,
-                                                                         self.init_solutions))
-            except FunctionTimedOut:
-                continue
-            for mapping_dict in mapping_dict_list:
-                relation = model.generate_relation(mapping_dict)
-                if relation not in self.matched_relations:
-                    if not model_used:
-                        self.model_instance_eq_num[0] += 1
-                        model_used = True
-                    self.matched_relations.append(relation)
-                    logger.debug(relation)
-                    if len(model.actions) > 0:
-                        new_actions = apply_mapping_to_actions(model, mapping_dict)
-                        total_actions.extend(new_actions)
-                    if len(model.equations) > 0:
-                        new_equations = apply_mapping_to_equations(model, mapping_dict, self.symbols)
-                        total_equations.extend(new_equations)
+            new_actions, new_equations = self.process_one_model(model)
+            total_actions.extend(new_actions)
+            total_equations.extend(new_equations)
+
         return total_actions, total_equations
 
-    def solve(self):
+    def init_solve(self):
         if self.global_graph.target is None or len(self.global_graph.target) == 0:
             raise Exception("No target!")
         logger.debug(f"Target Node: {self.global_graph.target}")
@@ -574,6 +583,8 @@ class GraphSolver:
         self.init_solutions = max(init_solutions, key=estimate)
         self.update_graph_node_values(self.init_solutions)
 
+    def solve(self):
+        self.init_solve()
         while self.is_updated and self.rounds < self.upper_bound:
             self.rounds += 1
             logger.debug(f"Round {self.rounds}")
@@ -614,8 +625,6 @@ class GraphSolver:
                 logger.debug(f"Equations Added from Models ({len(added_equations)}):\n{added_equations}")
                 self.model_equations.extend(added_equations)
 
-            self.equations.extend(self.model_equations)
-            self.equations = list(set(self.equations))
             self.solve_equations()
 
             self.target_node_values = self.check_and_evaluate_targets()

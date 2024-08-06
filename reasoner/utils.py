@@ -268,7 +268,7 @@ def json_to_grf_model(json_data):
     return grf_data
 
 
-def json_to_gml(json_data, is_directed=True):
+def dict_to_gml(json_data, is_directed=True):
     gml_data = "graph [\n"
     gml_data += f"  directed {int(is_directed)}\n"
 

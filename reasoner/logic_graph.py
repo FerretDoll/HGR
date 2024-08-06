@@ -158,7 +158,7 @@ class GlobalGraph(LogicGraph):
         self.grf_data = new_grf_data
 
     @classmethod
-    def from_json(cls, json_data):
+    def from_dict(cls, json_data):
         """根据JSON数据实例化GlobalGraph"""
         global_graph = cls()
 
@@ -205,11 +205,39 @@ class GlobalGraph(LogicGraph):
 
         return global_graph
 
+    def to_dict(self):
+        """将全局图转换为dict格式"""
+        # 提取节点信息
+        nodes = list(self.graph.nodes)
+        node_type = [self.get_node_type(node) for node in nodes]
+        node_attr = [self.get_node_value(node) for node in nodes]
+        target_node = self.target
+
+        # 提取边信息
+        edge_index = [list(edge) for edge in zip(*self.graph.edges)]
+        st_idx = [nodes.index(st) for st in edge_index[0]]
+        ed_idx = [nodes.index(ed) for ed in edge_index[1]]
+        new_edge_index = [st_idx, ed_idx]
+        edge_attr = [self.get_edge_type(edge[0], edge[1]) for edge in self.graph.edges]
+
+        # 构建字典
+        graph_dict = {
+            "node": nodes,
+            "node_type": node_type,
+            "node_attr": node_attr,
+            "edge_index": new_edge_index,
+            "edge_attr": edge_attr,
+            "target_node": target_node
+        }
+
+        return graph_dict
+
 
 class ModelGraph(LogicGraph):
     def __init__(self):
         super().__init__()
         self.model_id = ""
+        self.model_name = ""
         self.relation_template = ""
         self.constraints = ""
         self.visual_constraints = ""
@@ -228,11 +256,12 @@ class ModelGraph(LogicGraph):
         return relation_str
 
     @classmethod
-    def from_json(cls, json_data, model_id):
+    def from_json(cls, json_data, model_name):
         """根据JSON数据实例化ModelGraph"""
         model_graph = cls()
 
         # 直接解析传入的json_data，这里假设json_data已经是"Triangle"键下的数据
+        model_id = json_data.get("id", "")
         nodes = json_data.get("nodes", [])
         edges = json_data.get("edges", [])
         graph = json_data.get("grf_data", "")
@@ -245,7 +274,8 @@ class ModelGraph(LogicGraph):
         edge_types = json_data.get("edge_types", "")
 
         # 为ModelGraph实例赋值
-        model_graph.model_id = model_id  # 设置模型ID
+        model_graph.model_id = model_id
+        model_graph.model_name = model_name  # 设置模型ID
         model_graph.grf_data = graph  # 设置图的表示数据
         model_graph.relation_template = relation  # 设置关系
         model_graph.constraints = constraints  # 设置约束条件
