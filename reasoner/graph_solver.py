@@ -583,6 +583,40 @@ class GraphSolver:
         self.init_solutions = max(init_solutions, key=estimate)
         self.update_graph_node_values(self.init_solutions)
 
+    def solve_with_one_model(self, model):
+        self.is_updated = False
+        logger.debug(f"Start matching model: {model.model_name}")
+        actions, equations = self.process_one_model(model)
+        self.model_instance_eq_num[1] = len(self.matched_relations)
+
+        if len(actions) == 0 and len(equations) == 0:
+            logger.debug("Model matching failed.")
+            return
+
+        if len(actions) > 0:
+            self.is_updated = True
+            logger.debug(f"Actions List: {actions}")
+            self.execute_actions(actions)
+
+        if len(equations) > 0:
+            equations = list(set(equations))
+            self.model_instance_eq_num[2] += len(equations)
+            logger.debug(f"Equations Added from Model ({len(equations)}):\n{equations}")
+            self.model_equations.extend(equations)
+
+            self.equations = [item for sublist in list(self.node_value_equations_dict.values()) for item in sublist]
+            self.solve_equations()
+
+            self.target_node_values = self.check_and_evaluate_targets()
+
+    def solve_with_model_sequence(self, model_sequence):
+        self.init_solve()
+        for model in model_sequence:
+            self.solve_with_one_model(model)
+            if len(self.target_node_values) > 0:
+                self.answer = self.replace_and_evaluate(self.global_graph.target_equation)
+                break
+
     def solve(self):
         self.init_solve()
         while self.is_updated and self.rounds < self.upper_bound:
@@ -614,6 +648,8 @@ class GraphSolver:
                         action_list.extend(actions)
                         added_equations.extend(equations)
 
+            self.model_instance_eq_num[1] = len(self.matched_relations)
+
             if len(action_list) > 0:
                 self.is_updated = True
                 logger.debug(f"Actions List: {action_list}")
@@ -625,10 +661,9 @@ class GraphSolver:
                 logger.debug(f"Equations Added from Models ({len(added_equations)}):\n{added_equations}")
                 self.model_equations.extend(added_equations)
 
-            self.solve_equations()
+                self.solve_equations()
 
-            self.target_node_values = self.check_and_evaluate_targets()
-            self.model_instance_eq_num[1] = len(self.matched_relations)
-            if len(self.target_node_values) > 0:
-                self.answer = self.replace_and_evaluate(self.global_graph.target_equation)
-                return
+                self.target_node_values = self.check_and_evaluate_targets()
+                if len(self.target_node_values) > 0:
+                    self.answer = self.replace_and_evaluate(self.global_graph.target_equation)
+                    return

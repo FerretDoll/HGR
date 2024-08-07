@@ -106,12 +106,13 @@ if INIT_MODEL:
 
 optimizer = torch.optim.AdamW(policy_net.parameters(), args.lr)
 memory = ReplayMemory(10000)
-
+map_dict = {}
 
 def beam_search_for_RL(solver, target, model, max_step, beam_size, EPS):
-    def theorem_pred(solver, target, model, step):
-        graph_data = Logic2Graph(solver.logic, target)
-        graph_data = reparse_graph_data(graph_data)
+    def theorem_pred(graph_solver, model):
+        global map_dict
+        graph_data = graph_solver.global_graph.to_dict()
+        graph_data, map_dict = reparse_graph_data(graph_data, map_dict)
 
         single_test_data = __preprocess_item(item=graph_data, node_type_vocab=node_type_vocab,
                                              node_attr_vocab=node_attr_vocab, edge_attr_vocab=edge_attr_vocab,
@@ -140,7 +141,7 @@ def beam_search_for_RL(solver, target, model, max_step, beam_size, EPS):
         conti_hyp_scores = []
         conti_hyp_steps = []
         for hyp_index, hyp in enumerate(hypotheses):
-            sorted_score_dict = theorem_pred(hyp, target, model, t)
+            sorted_score_dict = theorem_pred(hyp, model)
             for i in range(beam_size):
                 cur_score = list(sorted_score_dict.values())[i]
                 cur_theorem = list(sorted_score_dict.keys())[i]
@@ -164,7 +165,7 @@ def beam_search_for_RL(solver, target, model, max_step, beam_size, EPS):
             prev_hyp, theorem = hyp_theorem[cand_hyp_id]
             now_steps = conti_hyp_steps[cand_hyp_id]
 
-            state = generate_state(prev_hyp, target)
+            state = generate_state(prev_hyp)
             Update = False
             now_hyp = copy.deepcopy(prev_hyp)
             now_hyp.equations = []
@@ -204,9 +205,10 @@ def beam_search_for_RL(solver, target, model, max_step, beam_size, EPS):
     return None, tmp_memory
 
 
-def generate_state(solver, target):
-    graph_data = Logic2Graph(solver.logic, target)
-    graph_data = reparse_graph_data(graph_data)
+def generate_state(graph_solver):
+    global map_dict
+    graph_data = graph_solver.global_graph.to_dict()
+    graph_data, map_dict = reparse_graph_data(graph_data, map_dict)
     state = __preprocess_item(item=graph_data, node_type_vocab=node_type_vocab, node_attr_vocab=node_attr_vocab,
                               edge_attr_vocab=edge_attr_vocab, spatial_pos_max=1)
     for k, v in state.items():

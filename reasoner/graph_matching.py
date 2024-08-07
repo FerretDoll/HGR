@@ -89,6 +89,12 @@ def load_models_from_json(json_data):
     return model_pool, model_id_map
 
 
+def get_model(model_pool, model_id_map, model_id):
+    if model_id in model_id_map:
+        return model_pool[model_id_map[model_id]]
+    return None
+
+
 def get_candidate_models_from_pool(model_pool, global_graph):
     """
     从模型池中获取候选模型，确保模型的节点和边的类型数量不超过全局图中的对应数量。

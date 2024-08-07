@@ -25,6 +25,7 @@ random.seed(0)
 EPSILON = 1e-5
 
 invalid_actions = [0] + list(range(24,30))
+map_dict = {}
 
 def isLetter(ch):
     return ch.upper() and len(ch) == 1
@@ -88,8 +89,9 @@ def check_answer(answer, candidate_value_list, gt_id):
     return False
 
 def theorem_pred(solver, target, model, step):
+    global map_dict
     graph_data = Logic2Graph(solver.logic, target)
-    graph_data = reparse_graph_data(graph_data)
+    graph_data, map_dict = reparse_graph_data(graph_data, map_dict)
 
     node_type_vocab_file = './vocab/node_type_vocab.txt'
     node_attr_vocab_file = './vocab/node_attr_vocab.txt'

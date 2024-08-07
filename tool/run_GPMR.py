@@ -11,7 +11,8 @@ from tqdm import tqdm
 
 from GeoDRL.converter import Text2Logic, Logic2Graph
 from GeoDRL.logic_solver import LogicSolver
-from reasoner.graph_matching import load_models_from_json, get_candidate_models_from_pool, match_graphs
+from agent.gen_vocab import reparse_graph_data
+from reasoner.graph_matching import load_models_from_json, get_candidate_models_from_pool, match_graphs, get_model
 from reasoner.logic_graph import GlobalGraph
 from reasoner.graph_solver import GraphSolver
 from reasoner.utils import dict_to_gml, draw_graph_from_gml, is_debugging
@@ -48,6 +49,64 @@ def get_global_graph(parser, target, draw_graph=False):
     return GlobalGraph.from_dict(graph_dict)
 
 
+def get_graph_solver(q_id):
+    logic_forms = get_logic_forms(q_id)
+    parser, target = Text2Logic(logic_forms)
+    global_graph = get_global_graph(parser, target)
+    graph_solver = GraphSolver(global_graph, model_pool)
+
+    return graph_solver, target
+
+
+def solve_with_model_sequence(q_id, model_id_list):
+    res = {"id": q_id, "target": None, "answer": None, "model_instance_eq_num": None, "correctness": "no", "time": None}
+    s_time = time.time()
+    try:
+        data_path = os.path.join(config.db_dir_single, str(q_id), "data.json")
+        with open(data_path, "r") as f:
+            data = json.load(f)
+        candidate_value_list = data['precise_value']
+        gt_id = ord(data['answer']) - 65  # 将A-D转换为0-3
+
+        graph_solver, target = get_graph_solver(q_id)
+        models = []
+        for model_id in model_id_list:
+            model = get_model(model_pool, model_id_map, model_id)
+            models.append(model)
+        graph_solver.solve_with_model_sequence(models)
+        logger.debug("Target Node Value(s): %s", graph_solver.target_node_values)
+        if len(graph_solver.target_node_values) > 0:
+            target_node_values_float = [{key: N(value)} for d in graph_solver.target_node_values for
+                                        key, value in d.items()]
+            logger.debug("Target Node Value(s) (Float): %s", target_node_values_float)
+        answer = graph_solver.answer
+
+        res["model_instance_eq_num"] = graph_solver.model_instance_eq_num
+        if answer is not None:
+            if check_answer(answer, candidate_value_list, gt_id):
+                res["correctness"] = "yes"
+            else:
+                # 可能需要将弧度转换成度数后再验证答案
+                answer_degrees = np.degrees(float(answer))
+                if check_answer(answer_degrees, candidate_value_list, gt_id):
+                    res["correctness"] = "yes"
+                    answer = answer_degrees
+                elif check_answer(360 - answer_degrees, candidate_value_list, gt_id):
+                    res["correctness"] = "yes"
+                    answer = 360 - answer_degrees
+
+        res["target"] = target
+        res["answer"] = answer
+        logger.debug("Answer: %s", answer)
+        res['time'] = str(time.time() - s_time)
+    except Exception as e:
+        logger.error(e)
+        res['time'] = str(time.time() - s_time)
+        return res
+
+    return res
+
+
 def solve_question(q_id):
     res = {"id": q_id, "target": None, "answer": None, "model_instance_eq_num": None, "correctness": "no", "time": None}
     s_time = time.time()
@@ -58,11 +117,7 @@ def solve_question(q_id):
         candidate_value_list = data['precise_value']
         gt_id = ord(data['answer']) - 65  # 将A-D转换为0-3
 
-        logic_forms = get_logic_forms(q_id)
-        parser, target = Text2Logic(logic_forms)
-        res["target"] = target
-        global_graph = get_global_graph(parser, target)
-        graph_solver = GraphSolver(global_graph, model_pool)
+        graph_solver, target = get_graph_solver(q_id)
         graph_solver.solve()
         logger.debug("Total Rounds: %s", graph_solver.rounds)
         logger.debug("Target Node Value(s): %s", graph_solver.target_node_values)
@@ -86,6 +141,7 @@ def solve_question(q_id):
                     res["correctness"] = "yes"
                     answer = 360 - answer_degrees
 
+        res["target"] = target
         res["answer"] = answer
         logger.debug("Answer: %s", answer)
         res['time'] = str(time.time() - s_time)
@@ -211,6 +267,32 @@ def test_one_question(q_id):
             logger.error(f"Error: solve_question timed out")
 
 
+def test_reparse_graph_data(q_id):
+    graph_solver, _ = get_graph_solver(q_id)
+    graph_dict = graph_solver.global_graph.to_dict()
+    print(graph_dict['node_attr'])
+    graph_data, map_dict = reparse_graph_data(graph_dict, {})
+    print(graph_data['node_attr'])
+    print(map_dict)
+
+
+def test_solve_with_model_sequence(q_id, model_id_list):
+    if check_id_in_error_ids(q_id, config.error_ids_path):
+        logger.error(f"Error: question id {q_id} is in error_ids")
+        sys.exit(1)
+
+    if is_debugging():
+        res = solve_with_model_sequence(q_id, model_id_list)
+        logger.debug(res)
+    else:
+        try:
+            # 设置超时时间为60秒
+            res = func_timeout(120, solve_with_model_sequence, args=(q_id, model_id_list,))
+            logger.debug(res)
+        except FunctionTimedOut:
+            logger.error(f"Error: solve_question timed out")
+
+
 if __name__ == "__main__":
     # 测试多个题目
     # evaluate_all_questions(0, 10)
@@ -222,13 +304,17 @@ if __name__ == "__main__":
         q_id = args.question_id
 
         # 测试解答单个题目
-        test_one_question(q_id)
+        # test_one_question(q_id)
 
         # 测试模型匹配
         # test_graph_matching(q_id)
 
         # 绘制全局图
         # test_draw_global_graph(q_id)
+
+        # test_reparse_graph_data(q_id)
+
+        test_solve_with_model_sequence(q_id, [45, 53])
     except argparse.ArgumentError:
         logger.error("Error: question id is required")
         parser.print_help()
