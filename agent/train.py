@@ -20,7 +20,7 @@ from agent.graph_dataset import onehop_collate_fn, __preprocess_item
 from agent.model.graphtransformer.model import GraphormerEncoder
 from agent.model.graphtransformer.model_args import ModelArgs
 from reasoner import config
-from reasoner.config import logger, train_logger
+from reasoner.config import train_logger
 from reasoner.graph_matching import load_models_from_json, get_model
 from tool.run_RGR import get_graph_solver
 
@@ -73,7 +73,7 @@ class ReplayMemory(object):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--batch_size", type=int, default=32, help="number of samples in one batch during RL training.")
+parser.add_argument("--batch_size", type=int, default=16, help="number of samples in one batch during RL training.")
 parser.add_argument("--gamma", type=float, default=0.5, help="decay factor of RL model.")
 parser.add_argument("--beam_size", type=int, default=5, help="beam size for search")
 parser.add_argument("--lr", type=float, default=3e-5, help="learning rate for optimizer")
@@ -97,7 +97,6 @@ model_args = ModelArgs(num_classes=64, max_nodes=256, num_node_type=len(node_typ
                        num_edges=len(edge_attr_vocab), num_spatial=20, num_edge_dis=256, edge_type="one_hop",
                        multi_hop_max_dist=1)
 policy_net = GraphormerEncoder(model_args).cuda()
-policy_net = torch.nn.DataParallel(policy_net)
 if INIT_MODEL:
     policy_net.load_state_dict(torch.load(INIT_MODEL))
 
@@ -288,8 +287,8 @@ def solve_with_question(q_id, max_steps=10, eps=0.1):
         now_answer, tmp_memory = beam_search_for_RL(graph_solver, policy_net, max_steps, args.beam_size, eps)
         return now_answer, tmp_memory
     except Exception as e:
-        logger.error(e)
-        return None, None
+        train_logger.error(f"Solving question error: {e}")
+        return None, []
 
 
 def solve_with_question_random(q_id, max_steps=10):
@@ -304,80 +303,85 @@ def solve_with_question_random(q_id, max_steps=10):
         now_answer, tmp_memory = beam_search_for_RL_random(graph_solver, max_steps, args.beam_size)
         return now_answer, tmp_memory
     except Exception as e:
-        logger.error(e)
-        return None, None
+        train_logger.error(e)
+        return None, []
 
 
 def optimize_model():
-    if len(memory) < BATCH_SIZE:
-        return
-    policy_net.train()
-    transitions = memory.sample(BATCH_SIZE)
-    batch = Transition(*zip(*transitions))
-
-    state_batch = {}
     try:
+        if len(memory) < BATCH_SIZE:
+            return
+        policy_net.train()
+        transitions = memory.sample(BATCH_SIZE)
+        batch = Transition(*zip(*transitions))
+
+        state_batch = {}
+        try:
+            for k in batch.state[0].keys():
+                if k == 'edge_input':
+                    continue
+                state_batch[k] = [single_state[k].squeeze(0).cpu() for single_state in batch.state]
+        except:
+            train_logger.error(f"ERROR! Batch: {batch}")
+            return
+        state_batch = onehop_collate_fn([state_batch['x'], state_batch['node_attr'], state_batch['target_attr'],
+                                         state_batch['attn_bias'], state_batch['attn_edge_type'],
+                                         state_batch['spatial_pos'],
+                                         state_batch['in_degree'], state_batch['out_degree'], None,
+                                         [torch.Tensor(0)] * BATCH_SIZE], zipped=True)
+        for k in state_batch.keys():
+            state_batch[k] = state_batch[k].cuda()
+
+        action_batch = torch.LongTensor(batch.action).view(BATCH_SIZE, 1).cuda()
+        reward_batch = torch.Tensor(batch.reward).view(BATCH_SIZE).cuda()
+
+        non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
+                                                batch.next_state)), dtype=torch.bool).cuda()
+        non_final_next_states = {}
         for k in batch.state[0].keys():
             if k == 'edge_input':
                 continue
-            state_batch[k] = [single_state[k].squeeze(0).cpu() for single_state in batch.state]
-    except:
-        train_logger.error(f"ERROR! Batch: {batch}")
-        return
-    state_batch = onehop_collate_fn([state_batch['x'], state_batch['node_attr'], state_batch['target_attr'],
-                                     state_batch['attn_bias'], state_batch['attn_edge_type'],
-                                     state_batch['spatial_pos'],
-                                     state_batch['in_degree'], state_batch['out_degree'], None,
-                                     [torch.Tensor(0)] * BATCH_SIZE], zipped=True)
-    for k in state_batch.keys():
-        state_batch[k] = state_batch[k].cuda()
+            non_final_next_states[k] = [single_state[k].squeeze(0).cpu() for single_state in batch.next_state if
+                                        single_state is not None]
+        non_final_next_states = onehop_collate_fn(
+            [non_final_next_states['x'], non_final_next_states['node_attr'], non_final_next_states['target_attr'],
+             non_final_next_states['attn_bias'], non_final_next_states['attn_edge_type'],
+             non_final_next_states['spatial_pos'],
+             non_final_next_states['in_degree'], non_final_next_states['out_degree'], None, [torch.Tensor(0)] * BATCH_SIZE],
+            zipped=True)
+        for k in non_final_next_states.keys():
+            non_final_next_states[k] = non_final_next_states[k].cuda()
 
-    action_batch = torch.LongTensor(batch.action).view(BATCH_SIZE, 1).cuda()
-    reward_batch = torch.Tensor(batch.reward).view(BATCH_SIZE).cuda()
+        # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
+        # columns of actions taken. These are the actions which would've been taken
+        # for each batch state according to policy_net
+        state_action_values = policy_net(state_batch).gather(1, action_batch)
 
-    non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
-                                            batch.next_state)), dtype=torch.bool).cuda()
-    non_final_next_states = {}
-    for k in batch.state[0].keys():
-        if k == 'edge_input':
-            continue
-        non_final_next_states[k] = [single_state[k].squeeze(0).cpu() for single_state in batch.next_state if
-                                    single_state is not None]
-    non_final_next_states = onehop_collate_fn(
-        [non_final_next_states['x'], non_final_next_states['node_attr'], non_final_next_states['target_attr'],
-         non_final_next_states['attn_bias'], non_final_next_states['attn_edge_type'],
-         non_final_next_states['spatial_pos'],
-         non_final_next_states['in_degree'], non_final_next_states['out_degree'], None, [torch.Tensor(0)] * BATCH_SIZE],
-        zipped=True)
-    for k in non_final_next_states.keys():
-        non_final_next_states[k] = non_final_next_states[k].cuda()
+        # Compute V(s_{t+1}) for all next states.
+        next_state_values = torch.zeros(BATCH_SIZE).cuda()
+        with torch.no_grad():
+            next_state_values[non_final_mask] = policy_net(non_final_next_states).max(1)[0]
+        # Compute the expected Q values
+        expected_state_action_values = (next_state_values * GAMMA) + reward_batch
+        # Compute Huber loss
+        criterion = nn.SmoothL1Loss()
+        loss = criterion(state_action_values, expected_state_action_values.unsqueeze(1))
+        # Optimize the model
+        optimizer.zero_grad()
+        loss.backward()
+        # In-place gradient clipping
+        nn.utils.clip_grad_norm_(policy_net.parameters(), 1, norm_type=2)
+        optimizer.step()
+        global model_update_steps
+        model_update_steps += 1
+        writer.add_scalar('train_loss', loss.item(), global_step=model_update_steps)
 
-    # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
-    # columns of actions taken. These are the actions which would've been taken
-    # for each batch state according to policy_net
-    state_action_values = policy_net(state_batch).gather(1, action_batch)
+        if model_update_steps % 1000 == 0:
+            torch.save(policy_net.state_dict(), output_path + "/graph_model_RL_step" + str(model_update_steps) + ".pt")
 
-    # Compute V(s_{t+1}) for all next states.
-    next_state_values = torch.zeros(BATCH_SIZE).cuda()
-    with torch.no_grad():
-        next_state_values[non_final_mask] = policy_net(non_final_next_states).max(1)[0]
-    # Compute the expected Q values
-    expected_state_action_values = (next_state_values * GAMMA) + reward_batch
-    # Compute Huber loss
-    criterion = nn.SmoothL1Loss()
-    loss = criterion(state_action_values, expected_state_action_values.unsqueeze(1))
-    # Optimize the model
-    optimizer.zero_grad()
-    loss.backward()
-    # In-place gradient clipping
-    nn.utils.clip_grad_norm_(policy_net.parameters(), 1, norm_type=2)
-    optimizer.step()
-    global model_update_steps
-    model_update_steps += 1
-    writer.add_scalar('train_loss', loss.item(), global_step=model_update_steps)
-
-    if model_update_steps % 1000 == 0:
-        torch.save(policy_net.state_dict(), output_path + "/graph_model_RL_step" + str(model_update_steps) + ".pt")
+        torch.cuda.empty_cache()
+    except Exception as e:
+        train_logger.error(f"optimize model error: {e}")
 
 
 def pre_store_data():
@@ -398,9 +402,6 @@ def pre_store_data():
             if count >= save_interval:
                 pkl.dump(memory, open("Memory.pkl", 'wb'))
                 count = 0
-        except FunctionTimedOut:
-            train_logger.error(f'q_id: {q_id} - Timeout')
-            continue
         except Exception as e:
             train_logger.error(f'q_id: {q_id} - Error: {e}')
             pass
@@ -411,6 +412,7 @@ def pre_store_data():
 
 def train_loop():
     max_steps = 50000
+    global model_update_steps
     while (model_update_steps < max_steps):
         st = 0
         ed = 2401
@@ -424,10 +426,8 @@ def train_loop():
                 answer, tmp_memory = res
                 for _ in tmp_memory:
                     memory.push(*_)
-            except FunctionTimedOut:
-                train_logger.error(f'q_id: {q_id} - Timeout')
-                continue
             except Exception as e:
+                model_update_steps += 1
                 train_logger.error(f'q_id: {q_id} - Error: {e}')
                 continue
 
@@ -436,8 +436,8 @@ def train_loop():
 
 if __name__ == "__main__":
     torch.multiprocessing.set_start_method('spawn')
-    pre_store_data()
-    # memory = pkl.load(open("Memory.pkl", 'rb'))
-    # train_loop()
+    # pre_store_data()
+    memory = pkl.load(open("Memory.pkl", 'rb'))
+    train_loop()
     # solve_with_question(10)
     # solve_with_question_random(4)
