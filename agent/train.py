@@ -22,7 +22,7 @@ from agent.model.graphtransformer.model_args import ModelArgs
 from reasoner import config
 from reasoner.config import logger, train_logger
 from reasoner.graph_matching import load_models_from_json, get_model
-from tool.run_GPMR import get_graph_solver
+from tool.run_RGR import get_graph_solver
 
 output_path = 'saves/RL'
 log_path = 'logs'
@@ -322,7 +322,7 @@ def optimize_model():
                 continue
             state_batch[k] = [single_state[k].squeeze(0).cpu() for single_state in batch.state]
     except:
-        print("ERROR! Batch:", batch)
+        train_logger.error(f"ERROR! Batch: {batch}")
         return
     state_batch = onehop_collate_fn([state_batch['x'], state_batch['node_attr'], state_batch['target_attr'],
                                      state_batch['attn_bias'], state_batch['attn_edge_type'],
