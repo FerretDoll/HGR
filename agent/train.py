@@ -1,29 +1,28 @@
-import os
-import random
-import math
-import json
-import sys
-import numpy as np
 import argparse
-import pickle as pkl
 import copy
+import json
+import math
+import os
+import pickle as pkl
+import random
+import time
+import numpy as np
 import torch
 import torch.nn as nn
-import time
+
+from func_timeout import func_timeout, FunctionTimedOut
 from torch.utils.tensorboard import SummaryWriter
-from tqdm import tqdm, trange
+from tqdm import trange
 from collections import namedtuple, deque
 
-from agent.graph_dataset import onehop_collate_fn, __preprocess_item
 from agent.gen_vocab import reparse_graph_data
+from agent.graph_dataset import onehop_collate_fn, __preprocess_item
 from agent.model.graphtransformer.model import GraphormerEncoder
 from agent.model.graphtransformer.model_args import ModelArgs
-
-from GeoDRL.logic_solver import LogicSolver
-from GeoDRL.extended_definition import ExtendedDefinition
-from GeoDRL.logic_parser import LogicParser
-from GeoDRL.converter import Logic2Graph
-from func_timeout import func_timeout, FunctionTimedOut
+from reasoner import config
+from reasoner.config import logger, train_logger
+from reasoner.graph_matching import load_models_from_json, get_model
+from tool.run_GPMR import get_graph_solver
 
 output_path = 'saves/RL'
 log_path = 'logs'
@@ -34,19 +33,27 @@ if not os.path.exists(log_path):
 
 writer = SummaryWriter(log_path)
 
+with open(config.diagram_logic_forms_json_path, 'r') as diagram_file:
+    diagram_logic_forms_json = json.load(diagram_file)
+with open(config.text_logic_forms_json_path, 'r') as text_file:
+    text_logic_forms_json = json.load(text_file)
+with open(config.error_ids_path, 'r') as file:
+    error_ids = {line.strip() for line in file}  # 确保错误ID是整数
+with open(config.model_pool_path, 'r') as model_pool_file:
+    model_pool, model_id_map = load_models_from_json(json.load(model_pool_file))
 
-def setup_seed(seed):
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    np.random.seed(seed)
-    random.seed(seed)
-    torch.backends.cudnn.deterministic = True
+
+def setup_seed(seed=None):
+    if seed is not None:
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        random.seed(seed)
+        torch.backends.cudnn.deterministic = True
 
 
 setup_seed(0)
 
-Transition = namedtuple('Transition',
-                        ('state', 'action', 'next_state', 'reward'))
+Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
 
 
 class ReplayMemory(object):
@@ -74,28 +81,18 @@ args = parser.parse_args()
 BATCH_SIZE = args.batch_size
 GAMMA = args.gamma
 
-action_space = list(range(1, 24))
-invalid_actions = [0] + list(range(24, 30))
+action_space = list(range(64))
 
-DATA_INPUT_PATH = '../../data/geometry3k'
-DIAGRAM_INPUT_PATH = '../../data/geometry3k/logic_forms/diagram_logic_forms_annot.json'
-TEXT_INPUT_PATH = '../../data/geometry3k/logic_forms/text_logic_forms_annot_dissolved.json'
-
-with open(DIAGRAM_INPUT_PATH, "r") as f1:
-    diagram_logic_table = json.load(f1)
-with open(TEXT_INPUT_PATH, "r") as f2:
-    text_logic_table = json.load(f2)
-
-node_type_vocab_file = './vocab/node_type_vocab.txt'
-node_attr_vocab_file = './vocab/node_attr_vocab.txt'
-edge_attr_vocab_file = './vocab/edge_attr_vocab.txt'
+node_type_vocab_file = 'agent/vocab/node_type_vocab.txt'
+node_attr_vocab_file = 'agent/vocab/node_attr_vocab.txt'
+edge_attr_vocab_file = 'agent/vocab/edge_attr_vocab.txt'
 node_type_vocab = {line.strip(): i for i, line in enumerate(open(node_type_vocab_file, 'r').readlines())}
 node_attr_vocab = {line.strip(): i for i, line in enumerate(open(node_attr_vocab_file, 'r').readlines())}
 edge_attr_vocab = {line.strip(): i for i, line in enumerate(open(edge_attr_vocab_file, 'r').readlines())}
 
 model_update_steps = 0
 INIT_MODEL = None
-model_args = ModelArgs(num_classes=30, max_nodes=256, num_node_type=len(node_type_vocab),
+model_args = ModelArgs(num_classes=64, max_nodes=256, num_node_type=len(node_type_vocab),
                        num_node_attr=len(node_attr_vocab), num_in_degree=256, num_out_degree=256,
                        num_edges=len(edge_attr_vocab), num_spatial=20, num_edge_dis=256, edge_type="one_hop",
                        multi_hop_max_dist=1)
@@ -108,7 +105,8 @@ optimizer = torch.optim.AdamW(policy_net.parameters(), args.lr)
 memory = ReplayMemory(10000)
 map_dict = {}
 
-def beam_search_for_RL(solver, target, model, max_step, beam_size, EPS):
+
+def beam_search_for_RL(graph_solver, model, max_step, beam_size, eps):
     def theorem_pred(graph_solver, model):
         global map_dict
         graph_data = graph_solver.global_graph.to_dict()
@@ -128,14 +126,13 @@ def beam_search_for_RL(solver, target, model, max_step, beam_size, EPS):
     tmp_memory = []
 
     t = 0
-    hypotheses = [solver]
+    hypotheses = [graph_solver]
     hyp_steps = [[]]
     hyp_scores = [0.]
 
-    while t < max_step:
+    while t < max_step and len(hypotheses) > 0:
         t += 1
-        hyp_num = len(hypotheses)
-        assert hyp_num <= beam_size, f"hyp_num: {hyp_num}, beam_size: {beam_size}"
+        assert len(hypotheses) <= beam_size, f"hyp_num: {len(hypotheses)}, beam_size: {beam_size}"
 
         hyp_theorem = []
         conti_hyp_scores = []
@@ -145,8 +142,8 @@ def beam_search_for_RL(solver, target, model, max_step, beam_size, EPS):
             for i in range(beam_size):
                 cur_score = list(sorted_score_dict.values())[i]
                 cur_theorem = list(sorted_score_dict.keys())[i]
-                if random.random() <= EPS:
-                    cur_theorem = random.choice(action_space)
+                if np.random.random() <= eps:
+                    cur_theorem = np.random.choice(action_space)
                 if cur_score < 1e-5:
                     continue
                 hyp_theorem.append([hyp, cur_theorem])
@@ -166,31 +163,30 @@ def beam_search_for_RL(solver, target, model, max_step, beam_size, EPS):
             now_steps = conti_hyp_steps[cand_hyp_id]
 
             state = generate_state(prev_hyp)
-            Update = False
             now_hyp = copy.deepcopy(prev_hyp)
             now_hyp.equations = []
+            t1 = time.time()
             try:
-                t1 = time.time()
-                changed = now_hyp.function_maps[theorem]()
-                if changed is not None and changed:
-                    Update = True
-                Update = Update or len(now_hyp.equations) > 0
-                if not Update:
+                graph_model = get_model(model_pool, model_id_map, theorem)
+                now_hyp.solve_with_one_model(graph_model)
+                if not now_hyp.is_updated:
                     reward = -1.0
                     tmp_memory.append((state, theorem, state, reward))
                     continue
-                now_hyp.Solve_Equations()
-                now_answer = now_hyp._getAnswer(target)
                 t2 = time.time()
                 time_cost = t2 - t1
             except:
+                t2 = time.time()
+                time_cost = t2 - t1
                 tmp_memory.append((state, theorem, None, -1.0))
-            next_state = generate_state(now_hyp, target)
+            next_state = generate_state(now_hyp)
             reward = - (1 - math.exp(-1. * time_cost / 60.0))
-            if now_answer is not None:
-                reward += 1.0
-                tmp_memory.append((state, theorem, None, reward))
-                return now_answer, tmp_memory
+            if len(now_hyp.target_node_values) > 0:
+                answer = now_hyp.replace_and_evaluate(now_hyp.global_graph.target_equation)
+                if answer is not None:
+                    reward += 1.0
+                    tmp_memory.append((state, theorem, None, reward))
+                    return now_hyp.answer, tmp_memory
             else:
                 tmp_memory.append((state, theorem, next_state, reward))
 
@@ -200,6 +196,69 @@ def beam_search_for_RL(solver, target, model, max_step, beam_size, EPS):
 
         hypotheses = new_hypotheses
         hyp_scores = new_hyp_scores
+        hyp_steps = new_hyp_steps
+
+    return None, tmp_memory
+
+
+def beam_search_for_RL_random(graph_solver, max_step, beam_size):
+    tmp_memory = []
+
+    t = 0
+    hypotheses = [graph_solver]
+    hyp_steps = [[]]
+
+    while t < max_step and len(hypotheses) > 0:
+        t += 1
+        assert len(hypotheses) <= beam_size, f"hyp_num: {len(hypotheses)}, beam_size: {beam_size}"
+
+        hyp_theorem = []
+        conti_hyp_steps = []
+        for hyp_index, hyp in enumerate(hypotheses):
+            for i in range(beam_size):
+                cur_theorem = np.random.choice(action_space)
+                hyp_theorem.append([hyp, cur_theorem])
+                conti_hyp_steps.append(hyp_steps[hyp_index] + [cur_theorem])
+
+        new_hypotheses = []
+        new_hyp_steps = []
+
+        for cand_hyp_id in range(len(hyp_theorem)):
+            prev_hyp, theorem = hyp_theorem[cand_hyp_id]
+            now_steps = conti_hyp_steps[cand_hyp_id]
+
+            state = generate_state(prev_hyp)
+            now_hyp = copy.deepcopy(prev_hyp)
+            now_hyp.equations = []
+            t1 = time.time()
+            try:
+                graph_model = get_model(model_pool, model_id_map, theorem)
+                now_hyp.solve_with_one_model(graph_model)
+                if not now_hyp.is_updated:
+                    reward = -1.0
+                    tmp_memory.append((state, theorem, state, reward))
+                    continue
+                t2 = time.time()
+                time_cost = t2 - t1
+            except:
+                t2 = time.time()
+                time_cost = t2 - t1
+                tmp_memory.append((state, theorem, None, -1.0))
+            next_state = generate_state(now_hyp)
+            reward = - (1 - math.exp(-1. * time_cost / 60.0))
+            if len(now_hyp.target_node_values) > 0:
+                answer = now_hyp.replace_and_evaluate(now_hyp.global_graph.target_equation)
+                if answer is not None:
+                    reward += 1.0
+                    tmp_memory.append((state, theorem, None, reward))
+                    return now_hyp.answer, tmp_memory
+            else:
+                tmp_memory.append((state, theorem, next_state, reward))
+
+            new_hypotheses.append(now_hyp)
+            new_hyp_steps.append(now_steps)
+
+        hypotheses = new_hypotheses
         hyp_steps = new_hyp_steps
 
     return None, tmp_memory
@@ -217,84 +276,36 @@ def generate_state(graph_solver):
     return state
 
 
-def solve_with_question(id, seq=None, max_steps=10, EPS=0.1):
-    def isLetter(ch):
-        return ch.upper() and len(ch) == 1
-
-    def parse_logic_forms(parser, diagram_parser, text_parser):
-        ## Define diagram primitive elements
-        parser.logic.point_positions = diagram_parser['point_positions']
-        parser.logic.define_point([p for p in parser.logic.point_positions if isLetter(p)])
-        if parser.logic.debug:
-            print(parser.logic.point_positions)
-
-        lines = diagram_parser['line_instances']  # ['AB', 'AC', 'AD', 'BC', 'BD', 'CD']
-        for line in lines:
-            line = line.strip()
-            if len(line) == 2 and isLetter(line[0]) and isLetter(line[1]):
-                parser.logic.define_line(line[0], line[1])
-
-        circles = diagram_parser['circle_instances']  # ['O']
-        for point in circles:
-            parser.logic.define_circle(point)
-
-        ## Parse diagram logic forms
-        logic_forms = diagram_parser['diagram_logic_forms']
-        logic_forms = sorted(logic_forms, key=lambda x: x.find("Perpendicular") != -1)  # put 'Perpendicular' to the end
-
-        for logic_form in logic_forms:
-            if logic_form.strip() != "":
-                if parser.logic.debug:
-                    print("The diagram logic form is", logic_form)
-                try:
-                    res = parser.parse(logic_form)  # e.g., ['Equals', ['LengthOf', ['Line', 'A', 'C']], '10']
-                    parser.dfsParseTree(res)
-                except Exception as e:
-                    print(e)
-                    # print("\033[0;0;41mError:\033[0m", repr(e))
-                    pass
-
-        ## Parse text logic forms
-        target = None
-        text_logic_forms = text_parser["text_logic_forms"]
-        for text in text_logic_forms:
-            if parser.logic.debug:
-                print("The text logic form is", text)
-            if text.find('Find') != -1:
-                target = parser.findTarget(parser.parse(text))  # ['Value', 'A', 'C']
-            else:
-                res = parser.parse(text)
-                parser.dfsParseTree(res)
-
-        return parser, target
-
-    id = str(id)
-    diagram_parser = diagram_logic_table[id]
-    text_parser = text_logic_table[id]
-
-    parser = LogicParser(ExtendedDefinition(debug=False))
-
+def solve_with_question(q_id, max_steps=10, eps=0.1):
     try:
-        parser, target = parse_logic_forms(parser, diagram_parser, text_parser)
-    except:
-        # print(f"{id} parse error!")
-        return None
+        graph_solver, target = get_graph_solver(q_id)
+        graph_solver.init_solve()
 
-    solver = LogicSolver(parser.logic, target)
+        if len(graph_solver.target_node_values) > 0:
+            answer = graph_solver.answer
+            return answer, []
+    
+        now_answer, tmp_memory = beam_search_for_RL(graph_solver, policy_net, max_steps, args.beam_size, eps)
+        return now_answer, tmp_memory
+    except Exception as e:
+        logger.error(e)
+        return None, None
 
+
+def solve_with_question_random(q_id, max_steps=10):
     try:
-        solver.initSearch()
-        solver.Solve_Equations()
-        now_answer = solver._getAnswer(target)
-        if now_answer is not None:
-            return now_answer, []
-    except:
-        # print(f"{id} init error!")
-        return None
+        graph_solver, target = get_graph_solver(q_id)
+        graph_solver.init_solve()
 
-    # return None, tmp_memory
-    now_answer, tmp_memory = beam_search_for_RL(solver, target, policy_net, max_steps, args.beam_size, EPS)
-    return now_answer, tmp_memory
+        if len(graph_solver.target_node_values) > 0:
+            answer = graph_solver.answer
+            return answer, []
+
+        now_answer, tmp_memory = beam_search_for_RL_random(graph_solver, max_steps, args.beam_size)
+        return now_answer, tmp_memory
+    except Exception as e:
+        logger.error(e)
+        return None, None
 
 
 def optimize_model():
@@ -307,14 +318,15 @@ def optimize_model():
     state_batch = {}
     try:
         for k in batch.state[0].keys():
-            if k == 'edge_input': continue
+            if k == 'edge_input':
+                continue
             state_batch[k] = [single_state[k].squeeze(0).cpu() for single_state in batch.state]
     except:
         print("ERROR! Batch:", batch)
         return
-    state_batch = onehop_collate_fn([state_batch['x'], state_batch['node_attr'], state_batch['target_attr'], \
+    state_batch = onehop_collate_fn([state_batch['x'], state_batch['node_attr'], state_batch['target_attr'],
                                      state_batch['attn_bias'], state_batch['attn_edge_type'],
-                                     state_batch['spatial_pos'], \
+                                     state_batch['spatial_pos'],
                                      state_batch['in_degree'], state_batch['out_degree'], None,
                                      [torch.Tensor(0)] * BATCH_SIZE], zipped=True)
     for k in state_batch.keys():
@@ -327,13 +339,14 @@ def optimize_model():
                                             batch.next_state)), dtype=torch.bool).cuda()
     non_final_next_states = {}
     for k in batch.state[0].keys():
-        if k == 'edge_input': continue
+        if k == 'edge_input':
+            continue
         non_final_next_states[k] = [single_state[k].squeeze(0).cpu() for single_state in batch.next_state if
                                     single_state is not None]
     non_final_next_states = onehop_collate_fn(
-        [non_final_next_states['x'], non_final_next_states['node_attr'], non_final_next_states['target_attr'], \
+        [non_final_next_states['x'], non_final_next_states['node_attr'], non_final_next_states['target_attr'],
          non_final_next_states['attn_bias'], non_final_next_states['attn_edge_type'],
-         non_final_next_states['spatial_pos'], \
+         non_final_next_states['spatial_pos'],
          non_final_next_states['in_degree'], non_final_next_states['out_degree'], None, [torch.Tensor(0)] * BATCH_SIZE],
         zipped=True)
     for k in non_final_next_states.keys():
@@ -368,42 +381,54 @@ def optimize_model():
 
 
 def pre_store_data():
-    num_epoch = 1
     st = 0
-    ed = 2101
-    data = []
-    for epoch in trange(num_epoch):
-        for id in trange(st, ed):
-            id = str(id)
-            if id not in diagram_logic_table or id not in text_logic_table:
-                continue
-            try:
-                answer, tmp_memory = func_timeout(120, solve_with_question, kwargs=dict(id=id))
-                for _ in tmp_memory:
-                    memory.push(*_)
-                print(len(memory))
-            except:
-                pass
+    ed = 2401
+    save_interval = 100
+    count = 0
+    for q_id in trange(st, ed):
+        q_id = str(q_id)
+        if q_id not in diagram_logic_forms_json or q_id not in text_logic_forms_json or q_id in error_ids:
+            continue
+        try:
+            answer, tmp_memory = func_timeout(120, solve_with_question_random, kwargs=dict(q_id=q_id))
+            for _ in tmp_memory:
+                memory.push(*_)
+            count += 1
 
-    pkl.dump(memory, open("Memory.pkl", 'wb'))
+            if count >= save_interval:
+                pkl.dump(memory, open("Memory.pkl", 'wb'))
+                count = 0
+        except FunctionTimedOut:
+            train_logger.error(f'q_id: {q_id} - Timeout')
+            continue
+        except Exception as e:
+            train_logger.error(f'q_id: {q_id} - Error: {e}')
+            pass
+
+    if count > 0:
+        pkl.dump(memory, open("Memory.pkl", 'wb'))
 
 
 def train_loop():
-    max_steps = 1000000
+    max_steps = 50000
     while (model_update_steps < max_steps):
         st = 0
-        ed = 2101
-        for id in trange(st, ed):
-            id = str(id)
-            if id not in diagram_logic_table or id not in text_logic_table:
+        ed = 2401
+        for q_id in trange(st, ed):
+            q_id = str(q_id)
+            if q_id not in diagram_logic_forms_json or q_id not in text_logic_forms_json or q_id in error_ids:
                 continue
 
             try:
-                res = func_timeout(120, solve_with_question, kwargs=dict(id=id))
+                res = func_timeout(120, solve_with_question, kwargs=dict(q_id=q_id))
                 answer, tmp_memory = res
                 for _ in tmp_memory:
                     memory.push(*_)
-            except:
+            except FunctionTimedOut:
+                train_logger.error(f'q_id: {q_id} - Timeout')
+                continue
+            except Exception as e:
+                train_logger.error(f'q_id: {q_id} - Error: {e}')
                 continue
 
             optimize_model()
@@ -413,4 +438,6 @@ if __name__ == "__main__":
     torch.multiprocessing.set_start_method('spawn')
     pre_store_data()
     # memory = pkl.load(open("Memory.pkl", 'rb'))
-    train_loop()
+    # train_loop()
+    # solve_with_question(10)
+    # solve_with_question_random(4)

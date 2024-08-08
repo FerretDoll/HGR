@@ -220,6 +220,41 @@ class GlobalGraph(LogicGraph):
         new_edge_index = [st_idx, ed_idx]
         edge_attr = [self.get_edge_type(edge[0], edge[1]) for edge in self.graph.edges]
 
+        # 找到所有类型相同的节点并进行比较
+        type_to_nodes = {}
+        for node, n_type, n_attr in zip(nodes, node_type, node_attr):
+            if n_type == 'Point':
+                continue
+            if n_type not in type_to_nodes:
+                type_to_nodes[n_type] = []
+            type_to_nodes[n_type].append((node, n_attr))
+
+        equal_edges = []
+        for n_type, node_list in type_to_nodes.items():
+            for i in range(len(node_list) - 1):
+                node_i, attr_i = node_list[i]
+                for j in range(i + 1, len(node_list)):
+                    node_j, attr_j = node_list[j]
+                    if attr_i == 'None' and attr_j == 'None':
+                        continue
+                    if attr_i != 'None' and attr_j != 'None':
+                        if set(attr_i).intersection(set(attr_j)):
+                            equal_edges.append((nodes.index(node_i), nodes.index(node_j)))
+                        else:
+                            if any(x == node_j for x in attr_i) or any(y == node_i for y in attr_j):
+                                equal_edges.append((nodes.index(node_i), nodes.index(node_j)))
+                    else:
+                        if attr_i == 'None' and any(x == node_j for x in attr_j):
+                            equal_edges.append((nodes.index(node_i), nodes.index(node_j)))
+                        elif attr_j == 'None' and any(x == node_i for x in attr_i):
+                            equal_edges.append((nodes.index(node_i), nodes.index(node_j)))
+
+        # 将Equal边添加到边信息中
+        for (st, ed) in equal_edges:
+            new_edge_index[0].append(st)
+            new_edge_index[1].append(ed)
+            edge_attr.append('Equal')
+
         # 构建字典
         graph_dict = {
             "node": nodes,

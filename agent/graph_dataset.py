@@ -1,14 +1,18 @@
 #!/usr/bin/env python
 # coding: utf-8
-
-import algos
-import torch
-from torch.nn.utils.rnn import pad_sequence
+import sys
+import os
+import pyximport
 import numpy as np
 
-import pyximport
-
+# 设置工作目录
+agent_dir = os.path.join(os.path.dirname(__file__))
+sys.path.append(agent_dir)
 pyximport.install(setup_args={'include_dirs': np.get_include()})
+import agent.algos
+import torch
+from torch.nn.utils.rnn import pad_sequence
+
 
 
 def pad_attn_bias_unsqueeze(x, padlen):
@@ -84,7 +88,7 @@ def onehop_collate_fn(batch, zipped=False):
 
 def __preprocess_item(item, node_type_vocab, node_attr_vocab, edge_attr_vocab, spatial_pos_max):
     node, node_type, node_attr, edge_index, edge_attr, target_node = item['node'], item['node_type'], item['node_attr'], \
-    item['edge_index'], item['edge_attr'], item['target_node']
+        item['edge_index'], item['edge_attr'], item['target_node']
     N = len(node)
 
     # node feature 
@@ -96,26 +100,41 @@ def __preprocess_item(item, node_type_vocab, node_attr_vocab, edge_attr_vocab, s
 
     edge_attr = torch.LongTensor([edge_attr_vocab[_] for _ in edge_attr])
     edge_index = torch.LongTensor(edge_index)
+
     # node adj matrix [N, N] bool
     adj = torch.zeros([N + 1, N + 1], dtype=torch.bool)
     adj[0, :] = True
     adj[:, 0] = True
-    adj[edge_index[0, :] + 1, edge_index[1, :] + 1] = True
+
+    # 无向图：确保每条边是双向的
+    for i in range(edge_index.size(1)):
+        u = edge_index[0, i] + 1
+        v = edge_index[1, i] + 1
+        adj[u, v] = True
+        adj[v, u] = True
+
     for i in range(N + 1):
         adj[i, i] = True
 
-        # edge feature here
+    # edge feature here
     attn_edge_type = torch.zeros([N + 1, N + 1], dtype=torch.long)
     attn_edge_type[0, :] = 1
     attn_edge_type[:, 0] = 1
-    attn_edge_type[edge_index[0, :] + 1, edge_index[1, :] + 1] = edge_attr
+
+    # 无向图：确保每条边的特征是双向的
+    for i in range(edge_index.size(1)):
+        u = edge_index[0, i] + 1
+        v = edge_index[1, i] + 1
+        attn_edge_type[u, v] = edge_attr[i]
+        attn_edge_type[v, u] = edge_attr[i]
+
     for i in range(N + 1):
         attn_edge_type[i, i] = 2
 
-    shortest_path_result, path = algos.floyd_warshall(adj.numpy())
+    shortest_path_result, path = agent.algos.floyd_warshall(adj.numpy())
     max_dist = np.amax(shortest_path_result)
-    edge_input = algos.gen_edge_input(max_dist.astype(np.int32), path.astype(np.int32),
-                                      attn_edge_type.numpy().astype(np.int32))
+    edge_input = agent.algos.gen_edge_input(max_dist.astype(np.int32), path.astype(np.int32),
+                                            attn_edge_type.numpy().astype(np.int32))
     spatial_pos = torch.from_numpy((shortest_path_result)).long()
     attn_bias = torch.zeros([N + 1, N + 1], dtype=torch.float)  # with graph token
     attn_bias[spatial_pos > spatial_pos_max] = -10000.0

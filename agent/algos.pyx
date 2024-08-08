@@ -2,6 +2,10 @@
 # Licensed under the MIT License.
 
 import numpy
+cimport numpy
+
+# Initialize numpy array support
+numpy.import_array()
 
 def floyd_warshall(adjacency_matrix):
 
@@ -9,10 +13,10 @@ def floyd_warshall(adjacency_matrix):
     assert nrows == ncols
     cdef unsigned int n = nrows
 
-    adj_mat_copy = adjacency_matrix.astype(numpy.int64, order='C', casting='safe', copy=True)
+    adj_mat_copy = adjacency_matrix.astype(long, order='C', casting='safe', copy=True)
     assert adj_mat_copy.flags['C_CONTIGUOUS']
     cdef numpy.ndarray[long, ndim=2, mode='c'] M = adj_mat_copy
-    cdef numpy.ndarray[long, ndim=2, mode='c'] path = -1 * numpy.ones([n, n], dtype=numpy.int64)
+    cdef numpy.ndarray[long, ndim=2, mode='c'] path = -1 * numpy.ones([n, n], dtype=long)
 
     cdef unsigned int i, j, k
     cdef long M_ij, M_ik, cost_ikkj
@@ -66,12 +70,12 @@ def gen_edge_input(max_dist, path, edge_feat):
     cdef unsigned int n = nrows
     cdef unsigned int max_dist_copy = max_dist
 
-    path_copy = path.astype(numpy.int64, order='C', casting='safe', copy=True)
-    edge_feat_copy = edge_feat.astype(numpy.int64, order='C', casting='safe', copy=True)
+    path_copy = path.astype(long, order='C', casting='safe', copy=True)
+    edge_feat_copy = edge_feat.astype(long, order='C', casting='safe', copy=True)
     assert path_copy.flags['C_CONTIGUOUS']
     assert edge_feat_copy.flags['C_CONTIGUOUS']
 
-    cdef numpy.ndarray[long, ndim=4, mode='c'] edge_fea_all = -1 * numpy.ones([n, n, max_dist_copy, edge_feat.shape[-1]], dtype=numpy.int64)
+    cdef numpy.ndarray[long, ndim=4, mode='c'] edge_fea_all = -1 * numpy.ones([n, n, max_dist_copy, edge_feat.shape[-1]], dtype=long)
     cdef unsigned int i, j, k, num_path, cur
 
     for i in range(n):

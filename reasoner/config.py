@@ -43,6 +43,22 @@ eval_logger.addHandler(file_handler)
 # 设置 eval_logger 日志级别为 DEBUG
 eval_logger.setLevel(logging.DEBUG)
 
+# 创建 train_logger 用于存储训练信息
+train_logger = logging.getLogger('train_logger')
+
+# 创建文件处理器用于将日志记录到文件
+file_handler = logging.FileHandler('training.log')
+
+# 创建格式化器并将其添加到文件处理器
+file_formatter = logging.Formatter('%(asctime)s - %(message)s')
+file_handler.setFormatter(file_formatter)
+
+# 将文件处理器添加到 train_logger
+train_logger.addHandler(file_handler)
+
+# 设置 train_logger 日志级别为 DEBUG
+train_logger.setLevel(logging.DEBUG)
+
 # 节点类型到整数的映射
 NODE_TYPE_TO_INT = {
     "Point": 1,

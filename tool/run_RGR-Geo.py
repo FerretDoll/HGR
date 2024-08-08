@@ -304,7 +304,7 @@ if __name__ == "__main__":
         q_id = args.question_id
 
         # 测试解答单个题目
-        # test_one_question(q_id)
+        test_one_question(q_id)
 
         # 测试模型匹配
         # test_graph_matching(q_id)
@@ -314,7 +314,7 @@ if __name__ == "__main__":
 
         # test_reparse_graph_data(q_id)
 
-        test_solve_with_model_sequence(q_id, [45, 53])
+        # test_solve_with_model_sequence(q_id, [45, 53])
     except argparse.ArgumentError:
         logger.error("Error: question id is required")
         parser.print_help()

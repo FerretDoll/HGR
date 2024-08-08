@@ -582,6 +582,7 @@ class GraphSolver:
         estimate = lambda sol: sum([str(expr)[0] != '-' for expr in sol.values()])  # negative value
         self.init_solutions = max(init_solutions, key=estimate)
         self.update_graph_node_values(self.init_solutions)
+        self.target_node_values = self.check_and_evaluate_targets()
 
     def solve_with_one_model(self, model):
         self.is_updated = False
@@ -599,6 +600,7 @@ class GraphSolver:
             self.execute_actions(actions)
 
         if len(equations) > 0:
+            self.is_updated = True
             equations = list(set(equations))
             self.model_instance_eq_num[2] += len(equations)
             logger.debug(f"Equations Added from Model ({len(equations)}):\n{equations}")

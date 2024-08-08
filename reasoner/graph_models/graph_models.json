@@ -13646,5 +13646,84 @@
             }
         ],
         "grf_data": "13\n0 4\n1 4\n2 2\n3 2\n4 2\n5 2\n6 2\n7 2\n8 3\n9 3\n10 3\n11 3\n12 3\n0\n0\n1\n2 1 13\n1\n3 1 13\n1\n4 1 13\n2\n5 0 13\n5 2 4\n2\n6 0 13\n6 8 15\n2\n7 0 13\n7 8 15\n4\n8 0 10\n8 1 10\n8 4 15\n8 3 15\n3\n9 0 10\n9 7 15\n9 5 15\n3\n10 0 10\n10 6 15\n10 5 15\n3\n11 1 10\n11 3 15\n11 2 15\n3\n12 4 15\n12 1 10\n12 2 15\n"
-    }
+    },
+    "Connect_Points_On_Circle": {
+    "id": 63,
+    "relation": "Connect($a,$b)",
+    "constraints": "",
+    "visual_constraints": "",
+    "actions": [
+      {
+        "type": "add_node",
+        "details": [
+          "line_ab",
+          "Line"
+        ]
+      },
+      {
+        "type": "add_edge",
+        "details": [
+          "a",
+          "line_ab",
+          "Endpoint"
+        ]
+      },
+      {
+        "type": "add_edge",
+        "details": [
+          "b",
+          "line_ab",
+          "Endpoint"
+        ]
+      },
+      {
+        "type": "add_edge",
+        "details": [
+          "a",
+          "b",
+          "Connected"
+        ]
+      }
+    ],
+    "equations": [],
+    "node_types": {
+      "5": 1,
+      "1": 2
+    },
+    "edge_types": {
+      "8": 2
+    },
+    "nodes": [
+      {
+        "id": "n1",
+        "name": "circle_1",
+        "type": "Circle"
+      },
+      {
+        "id": "n2",
+        "name": "a",
+        "type": "Point"
+      },
+      {
+        "id": "n3",
+        "name": "b",
+        "type": "Point"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "n3",
+        "target": "n1",
+        "type": "LiesOnCircle"
+      },
+      {
+        "id": "e2",
+        "source": "n1",
+        "target": "n2",
+        "type": "LiesOnCircle"
+      }
+    ],
+    "grf_data": "3\n0 5\n1 1\n2 1\n1\n0 1 8\n0\n1\n2 0 8\n"
+  }
 }
