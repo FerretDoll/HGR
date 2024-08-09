@@ -1,4 +1,5 @@
 import argparse
+import copy
 import json
 import os
 import sys
@@ -28,8 +29,7 @@ with open(config.model_pool_path, 'r') as model_pool_file:
 
 
 def get_logic_forms(q_id):
-
-    text = diagram_logic_forms_json[str(q_id)]
+    text = copy.deepcopy(diagram_logic_forms_json[str(q_id)])
     text["logic_forms"] = text.pop("diagram_logic_forms")
     text["logic_forms"].extend(text_logic_forms_json[str(q_id)]["text_logic_forms"])
 

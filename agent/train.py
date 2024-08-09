@@ -1,3 +1,4 @@
+import re
 import argparse
 import copy
 import json
@@ -91,6 +92,7 @@ node_attr_vocab = {line.strip(): i for i, line in enumerate(open(node_attr_vocab
 edge_attr_vocab = {line.strip(): i for i, line in enumerate(open(edge_attr_vocab_file, 'r').readlines())}
 
 model_update_steps = 0
+# INIT_MODEL = 'saves/RL/graph_model_RL_step100.pt'
 INIT_MODEL = None
 model_args = ModelArgs(num_classes=64, max_nodes=256, num_node_type=len(node_type_vocab),
                        num_node_attr=len(node_attr_vocab), num_in_degree=256, num_out_degree=256,
@@ -98,6 +100,10 @@ model_args = ModelArgs(num_classes=64, max_nodes=256, num_node_type=len(node_typ
                        multi_hop_max_dist=1)
 policy_net = GraphormerEncoder(model_args).cuda()
 if INIT_MODEL:
+    match = re.search(r'step(\d+)', INIT_MODEL)
+    if match:
+        model_update_steps = int(match.group(1))  # 将提取的数字赋值给 model_update_steps
+        print(f"Start training at step: {model_update_steps}")
     policy_net.load_state_dict(torch.load(INIT_MODEL))
 
 optimizer = torch.optim.AdamW(policy_net.parameters(), args.lr)
@@ -283,7 +289,7 @@ def solve_with_question(q_id, max_steps=10, eps=0.1):
         if len(graph_solver.target_node_values) > 0:
             answer = graph_solver.answer
             return answer, []
-    
+
         now_answer, tmp_memory = beam_search_for_RL(graph_solver, policy_net, max_steps, args.beam_size, eps)
         return now_answer, tmp_memory
     except Exception as e:
@@ -347,7 +353,8 @@ def optimize_model():
             [non_final_next_states['x'], non_final_next_states['node_attr'], non_final_next_states['target_attr'],
              non_final_next_states['attn_bias'], non_final_next_states['attn_edge_type'],
              non_final_next_states['spatial_pos'],
-             non_final_next_states['in_degree'], non_final_next_states['out_degree'], None, [torch.Tensor(0)] * BATCH_SIZE],
+             non_final_next_states['in_degree'], non_final_next_states['out_degree'], None,
+             [torch.Tensor(0)] * BATCH_SIZE],
             zipped=True)
         for k in non_final_next_states.keys():
             non_final_next_states[k] = non_final_next_states[k].cuda()
@@ -376,10 +383,10 @@ def optimize_model():
         model_update_steps += 1
         writer.add_scalar('train_loss', loss.item(), global_step=model_update_steps)
 
-        if model_update_steps % 1000 == 0:
+        if model_update_steps % 500 == 0:
             torch.save(policy_net.state_dict(), output_path + "/graph_model_RL_step" + str(model_update_steps) + ".pt")
+            torch.cuda.empty_cache()
 
-        torch.cuda.empty_cache()
     except Exception as e:
         train_logger.error(f"optimize model error: {e}")
 
@@ -402,6 +409,9 @@ def pre_store_data():
             if count >= save_interval:
                 pkl.dump(memory, open("Memory.pkl", 'wb'))
                 count = 0
+        except FunctionTimedOut:
+            train_logger.error(f'q_id: {q_id} - Timeout')
+            continue
         except Exception as e:
             train_logger.error(f'q_id: {q_id} - Error: {e}')
             pass
@@ -412,26 +422,39 @@ def pre_store_data():
 
 def train_loop():
     max_steps = 50000
+    total_steps = 0
     global model_update_steps
-    while (model_update_steps < max_steps):
+    while (model_update_steps < max_steps and total_steps < max_steps):
+        total_steps += 1
         st = 0
         ed = 2401
         for q_id in trange(st, ed):
             q_id = str(q_id)
             if q_id not in diagram_logic_forms_json or q_id not in text_logic_forms_json or q_id in error_ids:
+                train_logger.debug(f'step: {model_update_steps}, q_id: {q_id} - q_id in error_ids')
                 continue
 
             try:
+                solve_start_time = time.time()
                 res = func_timeout(120, solve_with_question, kwargs=dict(q_id=q_id))
+                solve_end_time = time.time()
+                solve_duration = solve_end_time - solve_start_time
                 answer, tmp_memory = res
                 for _ in tmp_memory:
                     memory.push(*_)
+            except FunctionTimedOut:
+                train_logger.error(f'step: {model_update_steps}, q_id: {q_id} - Timeout')
+                continue
             except Exception as e:
-                model_update_steps += 1
-                train_logger.error(f'q_id: {q_id} - Error: {e}')
+                train_logger.error(f'step: {model_update_steps}, q_id: {q_id} - Error: {e}')
                 continue
 
+            optimize_start_time = time.time()
             optimize_model()
+            optimize_end_time = time.time()
+            optimize_duration = optimize_end_time - optimize_start_time
+            train_logger.info(
+                f'step: {model_update_steps}, q_id: {q_id} - solving time: {solve_duration:.4f} seconds, optimizing time: {optimize_duration:.4f} seconds')
 
 
 if __name__ == "__main__":
