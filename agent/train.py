@@ -169,7 +169,6 @@ def beam_search_for_RL(graph_solver, model, max_step, beam_size, eps):
 
             state = generate_state(prev_hyp)
             now_hyp = copy.deepcopy(prev_hyp)
-            now_hyp.equations = []
             t1 = time.time()
             try:
                 graph_model = get_model(model_pool, model_id_map, theorem)
@@ -181,9 +180,8 @@ def beam_search_for_RL(graph_solver, model, max_step, beam_size, eps):
                 t2 = time.time()
                 time_cost = t2 - t1
             except:
-                t2 = time.time()
-                time_cost = t2 - t1
                 tmp_memory.append((state, theorem, None, -1.0))
+                continue
             next_state = generate_state(now_hyp)
             reward = - (1 - math.exp(-1. * time_cost / 60.0))
             if len(now_hyp.target_node_values) > 0:
@@ -431,7 +429,7 @@ def train_loop():
         for q_id in trange(st, ed):
             q_id = str(q_id)
             if q_id not in diagram_logic_forms_json or q_id not in text_logic_forms_json or q_id in error_ids:
-                train_logger.debug(f'step: {model_update_steps}, q_id: {q_id} - q_id in error_ids')
+                train_logger.debug(f'step: {model_update_steps}, q_id: {q_id} not in diagram_logic_forms_json or not in text_logic_forms_json or in error_ids')
                 continue
 
             try:

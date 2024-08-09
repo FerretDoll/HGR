@@ -84,7 +84,7 @@ def load_models_from_json(json_data):
         model_graph = ModelGraph.from_json(model_content, model_name)
         # 将实例化的模型图添加到模型池列表中
         model_pool.append(model_graph)
-        model_id_map[model_graph.model_id] = model_id
+        model_id_map[model_id] = model_graph.model_id
 
     return model_pool, model_id_map
 

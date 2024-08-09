@@ -25,6 +25,7 @@ class GraphSolver:
         self.node_value_equations_dict = {}
         self.known_var = {}
         self.init_solutions = {}
+        self.matched_model_list = []
         self.matched_relations = []
         self.is_solved = False
         self.is_updated = True
@@ -512,6 +513,7 @@ class GraphSolver:
             if relation not in self.matched_relations:
                 if not model_used:
                     self.model_instance_eq_num[0] += 1
+                    self.matched_model_list.append(model.model_id)
                     model_used = True
                 self.matched_relations.append(relation)
                 logger.debug(relation)

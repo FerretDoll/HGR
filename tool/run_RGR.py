@@ -59,7 +59,7 @@ def get_graph_solver(q_id):
 
 
 def solve_with_model_sequence(q_id, model_id_list):
-    res = {"id": q_id, "target": None, "answer": None, "model_instance_eq_num": None, "correctness": "no", "time": None}
+    res = {"id": q_id, "target": None, "answer": None, "step_lst": None, "model_instance_eq_num": None, "correctness": "no", "time": None}
     s_time = time.time()
     try:
         data_path = os.path.join(config.db_dir_single, str(q_id), "data.json")
@@ -81,19 +81,11 @@ def solve_with_model_sequence(q_id, model_id_list):
             logger.debug("Target Node Value(s) (Float): %s", target_node_values_float)
         answer = graph_solver.answer
 
+        res["step_lst"] = graph_solver.matched_model_list
         res["model_instance_eq_num"] = graph_solver.model_instance_eq_num
-        if answer is not None:
-            if check_answer(answer, candidate_value_list, gt_id):
-                res["correctness"] = "yes"
-            else:
-                # 可能需要将弧度转换成度数后再验证答案
-                answer_degrees = np.degrees(float(answer))
-                if check_answer(answer_degrees, candidate_value_list, gt_id):
-                    res["correctness"] = "yes"
-                    answer = answer_degrees
-                elif check_answer(360 - answer_degrees, candidate_value_list, gt_id):
-                    res["correctness"] = "yes"
-                    answer = 360 - answer_degrees
+        correctness, answer = check_transformed_answer(answer, candidate_value_list, gt_id)
+        if correctness:
+            res["correctness"] = "yes"
 
         res["target"] = target
         res["answer"] = answer
@@ -108,7 +100,7 @@ def solve_with_model_sequence(q_id, model_id_list):
 
 
 def solve_question(q_id):
-    res = {"id": q_id, "target": None, "answer": None, "model_instance_eq_num": None, "correctness": "no", "time": None}
+    res = {"id": q_id, "target": None, "answer": None, "step_lst": None, "model_instance_eq_num": None, "correctness": "no", "time": None}
     s_time = time.time()
     try:
         data_path = os.path.join(config.db_dir_single, str(q_id), "data.json")
@@ -127,6 +119,7 @@ def solve_question(q_id):
             logger.debug("Target Node Value(s) (Float): %s", target_node_values_float)
         answer = graph_solver.answer
 
+        res["step_lst"] = graph_solver.matched_model_list
         res["model_instance_eq_num"] = graph_solver.model_instance_eq_num
         if answer is not None:
             if check_answer(answer, candidate_value_list, gt_id):
@@ -213,6 +206,23 @@ def check_answer(answer, candidate_value_list, gt_id):
     except Exception as e:
         logger.error(e)
     return False
+
+
+def check_transformed_answer(answer, candidate_value_list, gt_id):
+    if answer is not None:
+        if check_answer(answer, candidate_value_list, gt_id):
+            return True, answer
+        else:
+            # 可能需要将弧度转换成度数后再验证答案
+            answer_degrees = np.degrees(float(answer))
+            if check_answer(answer_degrees, candidate_value_list, gt_id):
+                answer = answer_degrees
+                return True, answer
+            elif check_answer(360 - answer_degrees, candidate_value_list, gt_id):
+                answer = 360 - answer_degrees
+                return True, answer
+    else:
+        return False, None
 
 
 def test_graph_matching(q_id):
