@@ -1,7 +1,6 @@
 import json
 import re
 
-日志数据路径
 log_file_path = 'experiment.log'
 # 输出JSON文件的路径
 correct_data_path = 'correct_data.json'

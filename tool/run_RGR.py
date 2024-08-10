@@ -2,8 +2,12 @@ import argparse
 import copy
 import json
 import os
+import gc
 import sys
 import time
+import multiprocessing
+import logging
+import logging.handlers
 
 import numpy as np
 from func_timeout import func_timeout, FunctionTimedOut
@@ -12,7 +16,6 @@ from tqdm import tqdm
 
 from GeoDRL.converter import Text2Logic, Logic2Graph
 from GeoDRL.logic_solver import LogicSolver
-from agent.gen_vocab import reparse_graph_data
 from reasoner.graph_matching import load_models_from_json, get_candidate_models_from_pool, match_graphs, get_model
 from reasoner.logic_graph import GlobalGraph
 from reasoner.graph_solver import GraphSolver
@@ -59,7 +62,8 @@ def get_graph_solver(q_id):
 
 
 def solve_with_model_sequence(q_id, model_id_list):
-    res = {"id": q_id, "target": None, "answer": None, "step_lst": None, "model_instance_eq_num": None, "correctness": "no", "time": None}
+    res = {"id": q_id, "target": None, "answer": None, "step_lst": None, "model_instance_eq_num": None,
+           "correctness": "no", "time": None}
     s_time = time.time()
     try:
         data_path = os.path.join(config.db_dir_single, str(q_id), "data.json")
@@ -100,7 +104,8 @@ def solve_with_model_sequence(q_id, model_id_list):
 
 
 def solve_question(q_id):
-    res = {"id": q_id, "target": None, "answer": None, "step_lst": None, "model_instance_eq_num": None, "correctness": "no", "time": None}
+    res = {"id": q_id, "target": None, "answer": None, "step_lst": None, "model_instance_eq_num": None,
+           "correctness": "no", "time": None}
     s_time = time.time()
     try:
         data_path = os.path.join(config.db_dir_single, str(q_id), "data.json")
@@ -110,7 +115,8 @@ def solve_question(q_id):
         gt_id = ord(data['answer']) - 65  # 将A-D转换为0-3
 
         graph_solver, target = get_graph_solver(q_id)
-        graph_solver.solve()
+        # graph_solver.solve()
+        graph_solver.solve_with_candi_models()
         logger.debug("Total Rounds: %s", graph_solver.rounds)
         logger.debug("Target Node Value(s): %s", graph_solver.target_node_values)
         if len(graph_solver.target_node_values) > 0:
@@ -143,56 +149,148 @@ def solve_question(q_id):
         res['time'] = str(time.time() - s_time)
         return res
 
+    # 清理资源
+    del graph_solver
+    del target
+    del candidate_value_list
+    gc.collect()  # 强制垃圾回收
+
     return res
+
+
+def log_listener_process(log_queue, log_file):
+    """Process to listen to logging messages and write them to a file."""
+    logger = logging.getLogger()
+    handler = logging.FileHandler(log_file)
+    formatter = logging.Formatter('%(asctime)s - %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    logger.setLevel(logging.DEBUG)
+
+    while True:
+        try:
+            record = log_queue.get()
+            if record is None:
+                break
+            logger.handle(record)
+        except Exception:
+            import traceback
+            print('Error in log listener:', file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)
+
+
+def worker(q_id, log_queue):
+    """Worker function to process each question."""
+    logger = logging.getLogger(f'Worker-{q_id}')
+    logger.setLevel(logging.DEBUG)
+
+    try:
+        # 执行题目求解函数并设置超时时间为120秒
+        res = func_timeout(120, solve_question, args=(q_id,))
+
+        # 创建日志记录并放入日志队列
+        log_record = logger.makeRecord(
+            logger.name, logging.DEBUG, __file__, 0,
+            res, None, None
+        )
+        log_queue.put(log_record)
+    except FunctionTimedOut:
+        # 处理超时异常并记录日志
+        log_record = logger.makeRecord(
+            logger.name, logging.ERROR, __file__, 0,
+            f"Error occurred while solving question {q_id}: FunctionTimedOut.", None, None
+        )
+        log_queue.put(log_record)
+    except Exception as e:
+        # 处理其他异常并记录日志
+        log_record = logger.makeRecord(
+            logger.name, logging.ERROR, __file__, 0,
+            f"Error occurred while solving question {q_id}: {e}", None, None
+        )
+        log_queue.put(log_record)
 
 
 def evaluate_all_questions(st, ed):
     with open(config.error_ids_path, 'r') as file:
         error_ids = {int(line.strip()) for line in file}  # 确保错误ID是整数
 
-    # 生成所有题目ID并排除错误ID
     all_question_ids = set(range(st, ed))
-    valid_question_ids = list(all_question_ids - error_ids)  # 将集合转换为列表
+    valid_question_ids = list(all_question_ids - error_ids)
     total = len(valid_question_ids)
     removed_count = len(all_question_ids) - total
 
     print(f"Removed {removed_count} questions with parsing errors.")
 
-    correct = 0
-    solved = 0
-    st_time = time.time()
-    result_json_dict = {}
+    # 日志队列和日志监听进程
+    log_queue = multiprocessing.Queue()
+    log_listener = multiprocessing.Process(target=log_listener_process, args=(log_queue, 'experiment.log'))
+    log_listener.start()
 
+    processes = []
     for q_id in tqdm(valid_question_ids):
-        try:
-            # 设置超时时间为60秒
-            res = func_timeout(120, solve_question, args=(q_id,))
-        except FunctionTimedOut:
-            logger.error(f"Error occurred while solving question {q_id}: FunctionTimedOut.")
-            continue
-        except Exception as e:
-            logger.error(f"Error occurred while solving question {q_id}: {e}")
-            continue
+        p = multiprocessing.Process(target=worker, args=(q_id, log_queue))
+        p.start()
+        processes.append(p)
+        if len(processes) >= 4:
+            for proc in processes:
+                proc.join()
+            processes = []
 
-        if res:
-            for k, v in res.items():
-                res[k] = str(v)
-            if res['answer'] is not None:
-                solved += 1
+    for proc in processes:
+        proc.join()
 
-                if res['correctness'] == "yes":
-                    result_json_dict[res["id"]] = res
-                    correct += 1
-            eval_logger.debug(res)
-        else:
-            logger.error(f"Error occurred while solving question {q_id}.")
+    # 停止日志监听进程
+    log_queue.put_nowait(None)
+    log_listener.join()
 
-    ed_time = time.time()
 
-    print(f"Total: {total}, Solved: {solved}, Correctness: {correct}, CorrectRate: {correct * 1.0 / total}")
-    print(f"Time Cost: {ed_time - st_time} seconds.")
-    with open('correct_' + str(correct) + '.json', 'w') as outfile:
-        json.dump(result_json_dict, outfile, indent=4)
+# def evaluate_all_questions(st, ed):
+#     with open(config.error_ids_path, 'r') as file:
+#         error_ids = {int(line.strip()) for line in file}  # 确保错误ID是整数
+
+#     # 生成所有题目ID并排除错误ID
+#     all_question_ids = set(range(st, ed))
+#     valid_question_ids = list(all_question_ids - error_ids)  # 将集合转换为列表
+#     total = len(valid_question_ids)
+#     removed_count = len(all_question_ids) - total
+
+#     print(f"Removed {removed_count} questions with parsing errors.")
+
+#     correct = 0
+#     solved = 0
+#     st_time = time.time()
+#     result_json_dict = {}
+
+#     for q_id in tqdm(valid_question_ids):
+#         try:
+#             # 设置超时时间为60秒
+#             res = func_timeout(120, solve_question, args=(q_id,))
+#         except FunctionTimedOut:
+#             logger.error(f"Error occurred while solving question {q_id}: FunctionTimedOut.")
+#             continue
+#         except Exception as e:
+#             logger.error(f"Error occurred while solving question {q_id}: {e}")
+#             continue
+
+#         if res:
+#             for k, v in res.items():
+#                 res[k] = str(v)
+#             if res['answer'] is not None:
+#                 solved += 1
+
+#                 if res['correctness'] == "yes":
+#                     result_json_dict[res["id"]] = res
+#                     correct += 1
+#             eval_logger.debug(res)
+#         else:
+#             logger.error(f"Error occurred while solving question {q_id}.")
+
+#     ed_time = time.time()
+
+#     print(f"Total: {total}, Solved: {solved}, Correctness: {correct}, CorrectRate: {correct * 1.0 / total}")
+#     print(f"Time Cost: {ed_time - st_time} seconds.")
+#     with open('correct_' + str(correct) + '.json', 'w') as outfile:
+#         json.dump(result_json_dict, outfile, indent=4)
 
 
 def check_answer(answer, candidate_value_list, gt_id):
@@ -277,15 +375,6 @@ def test_one_question(q_id):
             logger.error(f"Error: solve_question timed out")
 
 
-def test_reparse_graph_data(q_id):
-    graph_solver, _ = get_graph_solver(q_id)
-    graph_dict = graph_solver.global_graph.to_dict()
-    print(graph_dict['node_attr'])
-    graph_data, map_dict = reparse_graph_data(graph_dict, {})
-    print(graph_data['node_attr'])
-    print(map_dict)
-
-
 def test_solve_with_model_sequence(q_id, model_id_list):
     if check_id_in_error_ids(q_id, config.error_ids_path):
         logger.error(f"Error: question id {q_id} is in error_ids")
@@ -305,27 +394,25 @@ def test_solve_with_model_sequence(q_id, model_id_list):
 
 if __name__ == "__main__":
     # 测试多个题目
-    # evaluate_all_questions(0, 10)
+    evaluate_all_questions(0, 2401)
 
-    parser = argparse.ArgumentParser(description="Solve a specific question by number.")
-    parser.add_argument('question_id', type=int, help='The id of the question to solve')
-    try:
-        args = parser.parse_args()
-        q_id = args.question_id
+    # parser = argparse.ArgumentParser(description="Solve a specific question by number.")
+    # parser.add_argument('question_id', type=int, help='The id of the question to solve')
+    # try:
+    #     args = parser.parse_args()
+    #     q_id = args.question_id
 
-        # 测试解答单个题目
-        test_one_question(q_id)
+    #     # 测试解答单个题目
+    #     test_one_question(q_id)
 
-        # 测试模型匹配
-        # test_graph_matching(q_id)
+    #     # 测试模型匹配
+    #     # test_graph_matching(q_id)
 
-        # 绘制全局图
-        # test_draw_global_graph(q_id)
+    #     # 绘制全局图
+    #     # test_draw_global_graph(q_id)
 
-        # test_reparse_graph_data(q_id)
-
-        # test_solve_with_model_sequence(q_id, [45, 53])
-    except argparse.ArgumentError:
-        logger.error("Error: question id is required")
-        parser.print_help()
-        sys.exit(1)
+    #     # test_solve_with_model_sequence(q_id, [45, 53])
+    # except argparse.ArgumentError:
+    #     logger.error("Error: question id is required")
+    #     parser.print_help()
+    #     sys.exit(1)

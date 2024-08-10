@@ -42,6 +42,8 @@ with open(config.error_ids_path, 'r') as file:
     error_ids = {line.strip() for line in file}  # 确保错误ID是整数
 with open(config.model_pool_path, 'r') as model_pool_file:
     model_pool, model_id_map = load_models_from_json(json.load(model_pool_file))
+with open('model_sequence.json', 'r') as model_sequence:
+    model_sequence_json = json.load(model_sequence)
 
 
 def setup_seed(seed=None):
@@ -92,7 +94,7 @@ node_attr_vocab = {line.strip(): i for i, line in enumerate(open(node_attr_vocab
 edge_attr_vocab = {line.strip(): i for i, line in enumerate(open(edge_attr_vocab_file, 'r').readlines())}
 
 model_update_steps = 0
-# INIT_MODEL = 'saves/RL/graph_model_RL_step100.pt'
+# INIT_MODEL = 'saves/RL/graph_model_RL_step2000.pt'
 INIT_MODEL = None
 model_args = ModelArgs(num_classes=64, max_nodes=256, num_node_type=len(node_type_vocab),
                        num_node_attr=len(node_attr_vocab), num_in_degree=256, num_out_degree=256,
@@ -189,7 +191,7 @@ def beam_search_for_RL(graph_solver, model, max_step, beam_size, eps):
                 if answer is not None:
                     reward += 1.0
                     tmp_memory.append((state, theorem, None, reward))
-                    return now_hyp.answer, tmp_memory
+                    return answer, tmp_memory
             else:
                 tmp_memory.append((state, theorem, next_state, reward))
 
@@ -232,7 +234,6 @@ def beam_search_for_RL_random(graph_solver, max_step, beam_size):
 
             state = generate_state(prev_hyp)
             now_hyp = copy.deepcopy(prev_hyp)
-            now_hyp.equations = []
             t1 = time.time()
             try:
                 graph_model = get_model(model_pool, model_id_map, theorem)
@@ -244,9 +245,8 @@ def beam_search_for_RL_random(graph_solver, max_step, beam_size):
                 t2 = time.time()
                 time_cost = t2 - t1
             except:
-                t2 = time.time()
-                time_cost = t2 - t1
                 tmp_memory.append((state, theorem, None, -1.0))
+                continue
             next_state = generate_state(now_hyp)
             reward = - (1 - math.exp(-1. * time_cost / 60.0))
             if len(now_hyp.target_node_values) > 0:
@@ -254,7 +254,7 @@ def beam_search_for_RL_random(graph_solver, max_step, beam_size):
                 if answer is not None:
                     reward += 1.0
                     tmp_memory.append((state, theorem, None, reward))
-                    return now_hyp.answer, tmp_memory
+                    return answer, tmp_memory
             else:
                 tmp_memory.append((state, theorem, next_state, reward))
 
@@ -263,6 +263,41 @@ def beam_search_for_RL_random(graph_solver, max_step, beam_size):
 
         hypotheses = new_hypotheses
         hyp_steps = new_hyp_steps
+
+    return None, tmp_memory
+
+
+def beam_search_for_RL_model_sequence(graph_solver, model_sequence):
+    tmp_memory = []
+
+    prev_hyp = graph_solver
+    for theorem in model_sequence:
+        state = generate_state(prev_hyp)
+        now_hyp = copy.deepcopy(prev_hyp)
+        t1 = time.time()
+        try:
+            graph_model = get_model(model_pool, model_id_map, theorem)
+            now_hyp.solve_with_one_model(graph_model)
+            if not now_hyp.is_updated:
+                reward = -1.0
+                tmp_memory.append((state, theorem, state, reward))
+                continue
+            t2 = time.time()
+            time_cost = t2 - t1
+        except:
+            tmp_memory.append((state, theorem, None, -1.0))
+            continue
+        next_state = generate_state(now_hyp)
+        reward = - (1 - math.exp(-1. * time_cost / 60.0))
+        if len(now_hyp.target_node_values) > 0:
+            answer = now_hyp.replace_and_evaluate(now_hyp.global_graph.target_equation)
+            if answer is not None:
+                reward += 1.0
+                tmp_memory.append((state, theorem, None, reward))
+                return answer, tmp_memory
+        else:
+            tmp_memory.append((state, theorem, next_state, reward))
+        prev_hyp = now_hyp
 
     return None, tmp_memory
 
@@ -305,6 +340,24 @@ def solve_with_question_random(q_id, max_steps=10):
             return answer, []
 
         now_answer, tmp_memory = beam_search_for_RL_random(graph_solver, max_steps, args.beam_size)
+        return now_answer, tmp_memory
+    except Exception as e:
+        train_logger.error(e)
+        return None, []
+
+
+def solve_with_question_model_sequence(q_id):
+    try:
+        graph_solver, target = get_graph_solver(q_id)
+        graph_solver.init_solve()
+
+        if len(graph_solver.target_node_values) > 0:
+            answer = graph_solver.answer
+            return answer, []
+
+        model_sequence = model_sequence_json[str(q_id)]
+        now_answer, tmp_memory = beam_search_for_RL_model_sequence(graph_solver, model_sequence)
+        print(now_answer)
         return now_answer, tmp_memory
     except Exception as e:
         train_logger.error(e)
@@ -418,6 +471,36 @@ def pre_store_data():
         pkl.dump(memory, open("Memory.pkl", 'wb'))
 
 
+def pre_store_data_processed():
+    st = 0
+    ed = 2401
+    save_interval = 100
+    count = 0
+    for q_id in trange(st, ed):
+        q_id = str(q_id)
+        if q_id not in diagram_logic_forms_json or q_id not in text_logic_forms_json or q_id not in model_sequence_json or q_id in error_ids:
+            continue
+        try:
+            answer, tmp_memory = func_timeout(120, solve_with_question_model_sequence, kwargs=dict(q_id=q_id))
+            train_logger.debug(f'q_id: {q_id} - answer: {answer}')
+            for _ in tmp_memory:
+                memory.push(*_)
+            count += 1
+
+            if count >= save_interval:
+                pkl.dump(memory, open("Memory.pkl", 'wb'))
+                count = 0
+        except FunctionTimedOut:
+            train_logger.error(f'q_id: {q_id} - Timeout')
+            continue
+        except Exception as e:
+            train_logger.error(f'q_id: {q_id} - Error: {e}')
+            pass
+
+    if count > 0:
+        pkl.dump(memory, open("Memory.pkl", 'wb'))
+
+
 def train_loop():
     max_steps = 50000
     total_steps = 0
@@ -429,7 +512,7 @@ def train_loop():
         for q_id in trange(st, ed):
             q_id = str(q_id)
             if q_id not in diagram_logic_forms_json or q_id not in text_logic_forms_json or q_id in error_ids:
-                train_logger.debug(f'step: {model_update_steps}, q_id: {q_id} not in diagram_logic_forms_json or not in text_logic_forms_json or in error_ids')
+                train_logger.debug(f'step: {model_update_steps}, q_id: {q_id} - q_id in error_ids')
                 continue
 
             try:
@@ -452,13 +535,15 @@ def train_loop():
             optimize_end_time = time.time()
             optimize_duration = optimize_end_time - optimize_start_time
             train_logger.info(
-                f'step: {model_update_steps}, q_id: {q_id} - solving time: {solve_duration:.4f} seconds, optimizing time: {optimize_duration:.4f} seconds')
+                f'step: {model_update_steps}, q_id: {q_id} - answer: {answer}, solving time: {solve_duration:.4f} seconds, optimizing time: {optimize_duration:.4f} seconds')
 
 
 if __name__ == "__main__":
     torch.multiprocessing.set_start_method('spawn')
     # pre_store_data()
-    memory = pkl.load(open("Memory.pkl", 'rb'))
+    pre_store_data_processed()
+    # memory = pkl.load(open("Memory.pkl", 'rb'))
     train_loop()
-    # solve_with_question(10)
+    # solve_with_question(4)
     # solve_with_question_random(4)
+    # solve_with_question_model_sequence(4)

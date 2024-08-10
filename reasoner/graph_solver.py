@@ -621,6 +621,44 @@ class GraphSolver:
                 self.answer = self.replace_and_evaluate(self.global_graph.target_equation)
                 break
 
+    def solve_with_candi_models(self):
+        self.init_solve()
+        while self.is_updated and self.rounds < self.upper_bound:
+            self.rounds += 1
+            logger.debug(f"Round {self.rounds}")
+            self.is_updated = False
+
+            candidate_models = get_candidate_models_from_pool(self.model_pool, self.global_graph)
+            for model in candidate_models:
+                logger.debug(f"Start matching model: {model.model_name}")
+                actions, equations = self.process_one_model(model)
+                self.model_instance_eq_num[1] = len(self.matched_relations)
+
+                if len(actions) == 0 and len(equations) == 0:
+                    logger.debug("Model matching failed.")
+                    continue
+
+                if len(actions) > 0:
+                    self.is_updated = True
+                    logger.debug(f"Actions List: {actions}")
+                    self.execute_actions(actions)
+
+                if len(equations) > 0:
+                    self.is_updated = True
+                    equations = list(set(equations))
+                    self.model_instance_eq_num[2] += len(equations)
+                    logger.debug(f"Equations Added from Model ({len(equations)}):\n{equations}")
+                    self.model_equations.extend(equations)
+
+                    self.equations = [item for sublist in list(self.node_value_equations_dict.values()) for item in
+                                      sublist]
+                    self.solve_equations()
+
+                    self.target_node_values = self.check_and_evaluate_targets()
+                if len(self.target_node_values) > 0:
+                    self.answer = self.replace_and_evaluate(self.global_graph.target_equation)
+                    return
+
     def solve(self):
         self.init_solve()
         while self.is_updated and self.rounds < self.upper_bound:

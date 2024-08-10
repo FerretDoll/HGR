@@ -23,7 +23,7 @@ logger.addHandler(console_handler)
 environment = os.getenv('ENVIRONMENT', 'development')
 
 if environment == 'production':
-    logger.setLevel(logging.ERROR)
+    logger.setLevel(logging.CRITICAL)
 else:
     logger.setLevel(logging.DEBUG)
 
