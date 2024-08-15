@@ -102,6 +102,8 @@ TOLERANCE = {
 # 定义基本文件名
 diagram_logic_forms_json_file = "diagram_logic_forms_annot.json"
 text_logic_forms_json_file = "text_logic_forms_annot_dissolved.json"
+pred_diagram_logic_forms_json_path = "PGDP_logic_forms_pred.json"
+pred_text_logic_forms_json_file = "text_logic_forms_pred.json"
 
 # 构建完整路径
 db_dir = os.path.join("db", "Geometry3K_logic_forms")
@@ -110,6 +112,8 @@ db_dir_single = os.path.join("db", "Geometry3K")
 # 构建完整路径
 diagram_logic_forms_json_path = os.path.join(db_dir, diagram_logic_forms_json_file)
 text_logic_forms_json_path = os.path.join(db_dir, text_logic_forms_json_file)
+pred_diagram_logic_forms_json_path = os.path.join(db_dir, pred_diagram_logic_forms_json_path)
+pred_text_logic_forms_json_path = os.path.join(db_dir, pred_text_logic_forms_json_file)
 
 # 构建 model_pool 的路径
 model_pool_path = os.path.join("reasoner", "graph_models", "graph_models.json")

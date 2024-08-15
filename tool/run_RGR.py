@@ -23,10 +23,9 @@ from reasoner.utils import dict_to_gml, draw_graph_from_gml, is_debugging
 from reasoner.config import logger, eval_logger
 from reasoner import config
 
-with open(config.diagram_logic_forms_json_path, 'r') as diagram_file:
-    diagram_logic_forms_json = json.load(diagram_file)
-with open(config.text_logic_forms_json_path, 'r') as text_file:
-    text_logic_forms_json = json.load(text_file)
+text_logic_forms_json = None
+diagram_logic_forms_json = None
+
 with open(config.model_pool_path, 'r') as model_pool_file:
     model_pool, model_id_map = load_models_from_json(json.load(model_pool_file))
 
@@ -393,20 +392,35 @@ def test_solve_with_model_sequence(q_id, model_id_list):
 
 
 if __name__ == "__main__":
-    # 测试多个题目
-    evaluate_all_questions(0, 2401)
 
-    # parser = argparse.ArgumentParser(description="Solve a specific question by number.")
-    # parser.add_argument('question_id', type=int, help='The id of the question to solve')
+    parser = argparse.ArgumentParser(description="Solve a specific question by number.")
+    parser.add_argument('question_id', type=int, default=0, help='The id of the question to solve')
+    parser.add_argument("--use_annotated", action="store_true", help="use annotated data or generated data")
+    args = parser.parse_args()
+    if args.use_annotated:
+        print("Use annotated: True")
+        with open(config.diagram_logic_forms_json_path, 'r') as diagram_file:
+            diagram_logic_forms_json = json.load(diagram_file)
+        with open(config.text_logic_forms_json_path, 'r') as text_file:
+            text_logic_forms_json = json.load(text_file)
+    else:
+        print("Use annotated: False")
+        with open(config.pred_diagram_logic_forms_json_path, 'r') as diagram_file:
+            diagram_logic_forms_json = json.load(diagram_file)
+        with open(config.pred_text_logic_forms_json_path, 'r') as text_file:
+            text_logic_forms_json = json.load(text_file)
+
+    # 测试多个题目
+    evaluate_all_questions(2401, 3001)
+
     # try:
-    #     args = parser.parse_args()
     #     q_id = args.question_id
 
     #     # 测试解答单个题目
-    #     test_one_question(q_id)
+    #     # test_one_question(q_id)
 
     #     # 测试模型匹配
-    #     # test_graph_matching(q_id)
+    #     test_graph_matching(q_id)
 
     #     # 绘制全局图
     #     # test_draw_global_graph(q_id)
