@@ -1,6 +1,6 @@
-import gc
 import re
 import argparse
+import gc
 import copy
 import json
 import math
@@ -16,6 +16,7 @@ import multiprocessing
 import logging
 import logging.handlers
 
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from func_timeout import func_timeout, FunctionTimedOut
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import trange
@@ -67,8 +68,8 @@ args = parser.parse_args()
 BATCH_SIZE = args.batch_size
 GAMMA = args.gamma
 
-# INIT_MODEL = 'saves/RL/graph_model_RL_step6500.pt'
-INIT_MODEL = None
+INIT_MODEL = 'saves/RL/graph_model_RL_step5100.pt'
+# INIT_MODEL = None
 model_update_steps = 0
 map_dict = {}
 
@@ -85,7 +86,9 @@ if INIT_MODEL:
     policy_net.load_state_dict(torch.load(INIT_MODEL))
 
 optimizer = torch.optim.AdamW(policy_net.parameters(), args.lr)
-writer = SummaryWriter(log_path)
+
+
+# writer = SummaryWriter(log_path)
 
 
 def setup_seed(seed=None):
@@ -152,6 +155,7 @@ def beam_search_for_RL(graph_solver, model, max_step, beam_size, eps):
         for k, v in single_test_data.items():
             single_test_data[k] = v.unsqueeze(0).cuda()
         output_logits = model(single_test_data)
+        # print(f"output_logits: {output_logits}")
         score = torch.softmax(output_logits, dim=-1).squeeze(0)
         sorted_score = torch.sort(score, descending=True)
         sorted_score_dict = {k.cpu().item(): v.cpu().item() for k, v in zip(sorted_score[1], sorted_score[0])}
@@ -207,6 +211,7 @@ def beam_search_for_RL(graph_solver, model, max_step, beam_size, eps):
                 now_hyp.solve_with_one_model(graph_model)
                 if not now_hyp.is_updated:
                     reward = -1.0
+                    # print(f"reward: {reward}")
                     tmp_memory.append((state, theorem, state, reward))
                     continue
                 t2 = time.time()
@@ -220,9 +225,11 @@ def beam_search_for_RL(graph_solver, model, max_step, beam_size, eps):
                 answer = now_hyp.replace_and_evaluate(now_hyp.global_graph.target_equation)
                 if answer is not None:
                     reward += 1.0
+                    # print(f"reward: {reward}")
                     tmp_memory.append((state, theorem, None, reward))
                     return answer, used_theorems, tmp_memory
             else:
+                # print(f"reward: {reward}")
                 tmp_memory.append((state, theorem, next_state, reward))
 
             new_hypotheses.append(now_hyp)
@@ -345,6 +352,8 @@ def generate_state(graph_solver):
 
 
 def solve_with_question(q_id, max_steps=10, eps=0.1):
+    # print(f"solve_with_question: {q_id}")
+
     try:
         graph_solver, target = get_graph_solver(q_id)
         graph_solver.init_solve()
@@ -357,8 +366,34 @@ def solve_with_question(q_id, max_steps=10, eps=0.1):
                                                                   eps)
         return now_answer, model_id_seq, tmp_memory
     except Exception as e:
-        train_logger.error(f"Solving question error: {e}")
+        train_logger.error(f"Solving question error for q_id {q_id}: {e}")
+        gc.collect()
         return None, [], []
+
+
+def solve_with_timeout(q_id, timeout=120):
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(solve_with_question, q_id)
+        try:
+            solve_start_time = time.time()
+            res = future.result(timeout=timeout)  # 等待任务完成，超时则抛出 TimeoutError
+            solve_end_time = time.time()
+            solve_duration = solve_end_time - solve_start_time
+            answer, model_id_seq, tmp_memory = res
+
+            # 返回结果
+            return answer, model_id_seq, tmp_memory
+
+        except TimeoutError:
+            train_logger.error(f'step: {model_update_steps}, q_id: {q_id} - Timeout')
+            return None, [], []
+
+        except Exception as e:
+            train_logger.error(f'step: {model_update_steps}, q_id: {q_id} - Error: {e}')
+            return None, [], []
+
+        finally:
+            gc.collect()
 
 
 def solve_with_question_random(q_id, max_steps=10):
@@ -401,7 +436,6 @@ def optimize_model():
         policy_net.train()
         transitions = memory.sample(BATCH_SIZE)
         batch = Transition(*zip(*transitions))
-
         state_batch = {}
         try:
             for k in batch.state[0].keys():
@@ -421,6 +455,8 @@ def optimize_model():
 
         action_batch = torch.LongTensor(batch.action).view(BATCH_SIZE, 1).cuda()
         reward_batch = torch.Tensor(batch.reward).view(BATCH_SIZE).cuda()
+        # print(f"action_batch: {action_batch}")
+        # print(f"reward_batch: {reward_batch}")
 
         non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
                                                 batch.next_state)), dtype=torch.bool).cuda()
@@ -444,16 +480,32 @@ def optimize_model():
         # columns of actions taken. These are the actions which would've been taken
         # for each batch state according to policy_net
         state_action_values = policy_net(state_batch).gather(1, action_batch)
-
+        # print(state_action_values)
         # Compute V(s_{t+1}) for all next states.
         next_state_values = torch.zeros(BATCH_SIZE).cuda()
         with torch.no_grad():
-            next_state_values[non_final_mask] = policy_net(non_final_next_states).max(1)[0]
+            output_logits = policy_net(non_final_next_states)
+            # print(f"output_logits: {output_logits}")
+            next_state_values[non_final_mask] = output_logits.max(1)[0]
+
+        # scorelists = []
+        # for output_logit in output_logits:
+        #     score = torch.softmax(output_logit, dim=-1).squeeze(0)  # 对每个 output_logit 进行 softmax
+        #     sorted_score = torch.sort(score, descending=True)  # 按照得分从高到低排序
+        #     sorted_score_dict = {k.cpu().item(): v.cpu().item() for k, v in zip(sorted_score[1], sorted_score[0])}  # 将排序后的得分和对应的索引转换为字典
+        #     scorelists.append(sorted_score_dict)
+        # # 打印所有 scorelists
+        # for i, scorelist in enumerate(scorelists):
+        #     print(f"Scorelist for output_logits[{i}]: {scorelist}")
+
         # Compute the expected Q values
         expected_state_action_values = (next_state_values * GAMMA) + reward_batch
+        # print(f"state_action_values: {state_action_values}")
+        # print(f"expected_state_action_values: {expected_state_action_values.unsqueeze(1)}")
         # Compute Huber loss
         criterion = nn.SmoothL1Loss()
         loss = criterion(state_action_values, expected_state_action_values.unsqueeze(1))
+        # print(f"loss: {loss}")
         # Optimize the model
         optimizer.zero_grad()
         loss.backward()
@@ -462,9 +514,9 @@ def optimize_model():
         optimizer.step()
         global model_update_steps
         model_update_steps += 1
-        writer.add_scalar('train_loss', loss.item(), global_step=model_update_steps)
+        # writer.add_scalar('train_loss', loss.item(), global_step=model_update_steps)
 
-        if model_update_steps % 500 == 0:
+        if model_update_steps % 50 == 0:
             torch.save(policy_net.state_dict(), output_path + "/graph_model_RL_step" + str(model_update_steps) + ".pt")
             torch.cuda.empty_cache()
 
@@ -472,91 +524,91 @@ def optimize_model():
         train_logger.error(f"optimize model error: {e}")
 
 
-def log_listener_process(log_queue, log_file):
-    """Process to listen to logging messages and write them to a file."""
-    logger = logging.getLogger()
-    handler = logging.FileHandler(log_file)
-    formatter = logging.Formatter('%(asctime)s - %(message)s')
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-    logger.setLevel(logging.DEBUG)
+# def log_listener_process(log_queue, log_file):
+#     """Process to listen to logging messages and write them to a file."""
+#     logger = logging.getLogger()
+#     handler = logging.FileHandler(log_file)
+#     formatter = logging.Formatter('%(asctime)s - %(message)s')
+#     handler.setFormatter(formatter)
+#     logger.addHandler(handler)
+#     logger.setLevel(logging.DEBUG)
 
-    while True:
-        try:
-            record = log_queue.get()
-            if record is None:
-                break
-            logger.handle(record)
-        except Exception:
-            import traceback
-            print('Error in log listener:', file=sys.stderr)
-            traceback.print_exc(file=sys.stderr)
-
-
-def worker(q_id, log_queue):
-    """Worker function to process each question."""
-    logger = logging.getLogger(f'Worker-{q_id}')
-    logger.setLevel(logging.DEBUG)
-
-    try:
-        # 执行题目求解函数并设置超时时间为120秒
-        answer, tmp_memory = func_timeout(120, solve_with_question_model_sequence, args=(q_id,))
-        log_message = f'q_id: {q_id} - total memory: {len(memory)}, added memory: {len(tmp_memory)}, answer: {answer}'
-        for _ in tmp_memory:
-            memory.push(*_)
-        # 创建日志记录并放入日志队列
-        log_record = logger.makeRecord(
-            logger.name, logging.DEBUG, __file__, 0,
-            log_message, None, None
-        )
-        log_queue.put(log_record)
-    except FunctionTimedOut:
-        # 处理超时异常并记录日志
-        log_record = logger.makeRecord(
-            logger.name, logging.ERROR, __file__, 0,
-            f"Error occurred while solving question {q_id}: FunctionTimedOut.", None, None
-        )
-        log_queue.put(log_record)
-    except Exception as e:
-        # 处理其他异常并记录日志
-        log_record = logger.makeRecord(
-            logger.name, logging.ERROR, __file__, 0,
-            f"Error occurred while solving question {q_id}: {e}", None, None
-        )
-        log_queue.put(log_record)
+#     while True:
+#         try:
+#             record = log_queue.get()
+#             if record is None:
+#                 break
+#             logger.handle(record)
+#         except Exception:
+#             import traceback
+#             print('Error in log listener:', file=sys.stderr)
+#             traceback.print_exc(file=sys.stderr)
 
 
-def train_worker(q_id, log_queue, result_queue):
-    """Worker function to process each question."""
-    logger = logging.getLogger(f'Worker-{q_id}')
-    logger.setLevel(logging.DEBUG)
+# def worker(q_id, log_queue):
+#     """Worker function to process each question."""
+#     logger = logging.getLogger(f'Worker-{q_id}')
+#     logger.setLevel(logging.DEBUG)
 
-    try:
-        # 执行题目求解函数并设置超时时间为120秒
-        answer, model_id_seq, tmp_memory = func_timeout(120, solve_with_question, args=(q_id, policy_net))
-        for _ in tmp_memory:
-            memory.push(*_)
-        # 将answer传递回主进程
-        result_queue.put((answer, model_id_seq))
-    except FunctionTimedOut:
-        # 处理超时异常并记录日志
-        log_record = logger.makeRecord(
-            logger.name, logging.ERROR, __file__, 0,
-            f"Error occurred while solving question {q_id}: FunctionTimedOut.", None, None
-        )
-        log_queue.put(log_record)
-    except Exception as e:
-        # 处理其他异常并记录日志
-        log_record = logger.makeRecord(
-            logger.name, logging.ERROR, __file__, 0,
-            f"Error occurred while solving question {q_id}: {e}", None, None
-        )
-        log_queue.put(log_record)
+#     try:
+#         # 执行题目求解函数并设置超时时间为120秒
+#         answer, tmp_memory = func_timeout(120, solve_with_question_model_sequence, args=(q_id,))
+#         log_message = f'q_id: {q_id} - total memory: {len(memory)}, added memory: {len(tmp_memory)}, answer: {answer}'
+#         for _ in tmp_memory:
+#             memory.push(*_)
+#         # 创建日志记录并放入日志队列
+#         log_record = logger.makeRecord(
+#             logger.name, logging.DEBUG, __file__, 0,
+#             log_message, None, None
+#         )
+#         log_queue.put(log_record)
+#     except FunctionTimedOut:
+#         # 处理超时异常并记录日志
+#         log_record = logger.makeRecord(
+#             logger.name, logging.ERROR, __file__, 0,
+#             f"Error occurred while solving question {q_id}: FunctionTimedOut.", None, None
+#         )
+#         log_queue.put(log_record)
+#     except Exception as e:
+#         # 处理其他异常并记录日志
+#         log_record = logger.makeRecord(
+#             logger.name, logging.ERROR, __file__, 0,
+#             f"Error occurred while solving question {q_id}: {e}", None, None
+#         )
+#         log_queue.put(log_record)
+
+
+# def train_worker(q_id, log_queue, result_queue):
+#     """Worker function to process each question."""
+#     logger = logging.getLogger(f'Worker-{q_id}')
+#     logger.setLevel(logging.DEBUG)
+
+#     try:
+#         # 执行题目求解函数并设置超时时间为120秒
+#         answer, model_id_seq, tmp_memory = func_timeout(120, solve_with_question, args=(q_id,policy_net))
+#         for _ in tmp_memory:
+#             memory.push(*_)
+#         # 将answer传递回主进程
+#         result_queue.put((answer, model_id_seq))
+#     except FunctionTimedOut:
+#         # 处理超时异常并记录日志
+#         log_record = logger.makeRecord(
+#             logger.name, logging.ERROR, __file__, 0,
+#             f"Error occurred while solving question {q_id}: FunctionTimedOut.", None, None
+#         )
+#         log_queue.put(log_record)
+#     except Exception as e:
+#         # 处理其他异常并记录日志
+#         log_record = logger.makeRecord(
+#             logger.name, logging.ERROR, __file__, 0,
+#             f"Error occurred while solving question {q_id}: {e}", None, None
+#         )
+#         log_queue.put(log_record)
 
 
 def pre_store_data():
-    st = 0
-    ed = 2401
+    st = 700
+    ed = 1500
     save_interval = 100
     count = 0
     for q_id in trange(st, ed):
@@ -574,13 +626,16 @@ def pre_store_data():
                 count = 0
         except FunctionTimedOut:
             train_logger.error(f'q_id: {q_id} - Timeout')
+            gc.collect()
             continue
         except Exception as e:
             train_logger.error(f'q_id: {q_id} - Error: {e}')
+            gc.collect()
             pass
 
     if count > 0:
         pkl.dump(memory, open("Memory.pkl", 'wb'))
+        gc.collect()
 
 
 def pre_store_data_processed():
@@ -636,17 +691,19 @@ def train_loop():
 
             try:
                 solve_start_time = time.time()
-                res = func_timeout(120, solve_with_question, kwargs=dict(q_id=q_id))
+
+                # 调用 solve_with_timeout 函数
+                answer, model_id_seq, tmp_memory = solve_with_timeout(q_id, timeout=120)
+
                 solve_end_time = time.time()
                 solve_duration = solve_end_time - solve_start_time
-                answer, model_id_seq, tmp_memory = res
                 for _ in tmp_memory:
                     memory.push(*_)
-            except FunctionTimedOut:
-                train_logger.error(f'step: {model_update_steps}, q_id: {q_id} - Timeout')
-                continue
+
             except Exception as e:
+                # 处理其他未被捕捉的异常
                 train_logger.error(f'step: {model_update_steps}, q_id: {q_id} - Error: {e}')
+                gc.collect()
                 continue
 
             optimize_start_time = time.time()
@@ -655,16 +712,17 @@ def train_loop():
             optimize_duration = optimize_end_time - optimize_start_time
             train_logger.info(
                 f'step: {model_update_steps}, q_id: {q_id} - answer: {answer}, model_id_seq: {model_id_seq}, solving time: {solve_duration:.4f} seconds, optimizing time: {optimize_duration:.4f} seconds')
+            gc.collect()
 
 
 def pretrain_loop():
-    max_steps = 5001
+    max_steps = 5000
     for _ in trange(0, max_steps):
         optimize_start_time = time.time()
         optimize_model()
         optimize_end_time = time.time()
         optimize_duration = optimize_end_time - optimize_start_time
-        train_logger.info(f'step: {model_update_steps} - optimizing time: {optimize_duration:.4f} seconds')
+        # train_logger.info(f'step: {model_update_steps} - optimizing time: {optimize_duration:.4f} seconds')
 
 
 if __name__ == "__main__":
@@ -674,11 +732,12 @@ if __name__ == "__main__":
         # 已经设置过多进程启动方式
         pass
 
+    memory = pkl.load(open("Memory.pkl", 'rb'))
     # pre_store_data()
-    pre_store_data_processed()
-    # memory = pkl.load(open("Memory.pkl", 'rb'))
+    # pre_store_data_processed()
     # pretrain_loop()
-    # train_loop()
+    train_loop()
+
     # solve_with_question(4)
     # solve_with_question_random(4)
     # solve_with_question_model_sequence(4)

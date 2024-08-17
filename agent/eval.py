@@ -19,7 +19,7 @@ import random
 from reasoner import graph_solver, config
 from reasoner.config import logger, eval_logger
 from reasoner.graph_matching import load_models_from_json, get_model
-from tool.run_RGR import get_graph_solver, check_answer, check_transformed_answer
+from tool.run_HGR import get_graph_solver, check_answer, check_transformed_answer
 
 random.seed(0)
 
