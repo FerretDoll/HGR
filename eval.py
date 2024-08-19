@@ -19,22 +19,13 @@ import random
 from reasoner import graph_solver, config
 from reasoner.config import logger, eval_logger
 from reasoner.graph_matching import load_models_from_json, get_model
-from tool.run_HGR import get_graph_solver, check_answer, check_transformed_answer, evaluate_all_questions
+from tool.run_HGR import get_graph_solver, solve_question, check_transformed_answer, evaluate_all_questions
 
 random.seed(0)
 
 EPSILON = 1e-5
 
 map_dict = {}
-
-with open(config.diagram_logic_forms_json_path, 'r') as diagram_file:
-    diagram_logic_forms_json = json.load(diagram_file)
-with open(config.text_logic_forms_json_path, 'r') as text_file:
-    text_logic_forms_json = json.load(text_file)
-with open(config.error_ids_path, 'r') as file:
-    error_ids = {line.strip() for line in file}  # 确保错误ID是整数
-with open(config.model_pool_path, 'r') as model_pool_file:
-    model_pool, model_id_map = load_models_from_json(json.load(model_pool_file))
 
 node_type_vocab_file = 'agent/vocab/node_type_vocab.txt'
 node_attr_vocab_file = 'agent/vocab/node_attr_vocab.txt'
@@ -53,7 +44,16 @@ parser.add_argument("--use_agent", action="store_true", help="use model selectio
 parser.add_argument("--model_path", type=str, help="model weight path")
 parser.add_argument("--output_path", type=str, help="output path of result json file")
 parser.add_argument("--beam_size", type=int, default=5, help="beam size for search")
+parser.add_argument('--question_id', type=int, help='The id of the question to solve')
 args = parser.parse_args()
+
+
+
+with open(config.error_ids_path, 'r') as file:
+    error_ids = {line.strip() for line in file}
+with open(config.model_pool_path, 'r') as model_pool_file:
+    model_pool, model_id_map = load_models_from_json(json.load(model_pool_file))
+
 model_save_path = args.model_path
 model = GraphormerEncoder(model_args).cuda()
 if model_save_path:
@@ -95,7 +95,7 @@ def beam_search(graph_solver, model, max_step, beam_size):
         conti_hyp_steps = []
         for hyp_index, hyp in enumerate(hypotheses):
             sorted_score_dict = theorem_pred(hyp, model)
-            print("step:", t, "past_steps:", hyp_steps[hyp_index], sorted_score_dict)
+            # print("step:", t, "past_steps:", hyp_steps[hyp_index], sorted_score_dict)
             for i in range(beam_size):
                 cur_score = list(sorted_score_dict.values())[i]
                 if cur_score < EPSILON:
@@ -216,6 +216,10 @@ def solve(q_id, model, max_step=10, beam_size=5):
 def eval(st, ed):
     for q_id in trange(st, ed):
         try:
+            q_id = str(q_id)
+            if q_id not in diagram_logic_forms_json or q_id not in text_logic_forms_json or q_id in error_ids:
+                eval_logger.debug(f'step: {model_update_steps}, q_id: {q_id} - q_id in error_ids')
+                continue
             res = func_timeout(120, solve, kwargs=dict(q_id=q_id, model=model, max_step=10, beam_size=5))
             eval_logger.debug(res)
         except FunctionTimedOut:
@@ -228,9 +232,26 @@ def eval(st, ed):
 
 if __name__ == "__main__":
     torch.multiprocessing.set_start_method('spawn')
-    print("Use annotated: ", args.use_annotated)
-    if args.use_agent:
-        eval(st=2401, ed=3002)
+    if args.use_annotated:
+        print("Use annotated: True")
+        with open(config.diagram_logic_forms_json_path, 'r') as diagram_file:
+            diagram_logic_forms_json = json.load(diagram_file)
+        with open(config.text_logic_forms_json_path, 'r') as text_file:
+            text_logic_forms_json = json.load(text_file)
     else:
-        evaluate_all_questions(st=2401, ed=3002)
-    # print(solve_with_time(2401, model, max_step=10, beam_size=5))
+        print("Use annotated: False")
+        with open(config.pred_diagram_logic_forms_json_path, 'r') as diagram_file:
+            diagram_logic_forms_json = json.load(diagram_file)
+        with open(config.pred_text_logic_forms_json_path, 'r') as text_file:
+            text_logic_forms_json = json.load(text_file)
+    if args.question_id:
+        if args.use_agent:
+            solve_with_time(args.question_id, model, max_step=10, beam_size=5)
+        else:
+            solve_question(args.question_id)
+    else:
+        if args.use_agent:
+            eval(st=2401, ed=3002)
+        else:
+            evaluate_all_questions(st=2401, ed=3002)
+

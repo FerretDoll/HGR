@@ -9,7 +9,6 @@ import re
 from reasoner import config
 from tool.process_logs import process_log_file
 
-
 with open(config.error_ids_path, 'r') as file:
     error_ids = {int(line.strip()) for line in file}
 
@@ -161,7 +160,10 @@ if __name__ == '__main__':
     for i in range(total):
         id = str(valid_question_ids[i])
         if id in result_data:
-            model_instance_eq_num = ast.literal_eval(result_data[id]["model_instance_eq_num"])
+            model_instance_eq_num = result_data[id]["model_instance_eq_num"]
+            if isinstance(model_instance_eq_num, str):
+                model_instance_eq_num = ast.literal_eval(model_instance_eq_num)
+
             total_model_num += int(model_instance_eq_num[0])
             total_instance_num += int(model_instance_eq_num[1])
             total_eq_num += int(model_instance_eq_num[2])

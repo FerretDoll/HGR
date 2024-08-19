@@ -4,6 +4,9 @@ from datetime import datetime
 
 from sympy import pi
 
+parent_dir = os.path.dirname(os.path.dirname(__file__))
+output_dir = os.path.join(parent_dir, 'output')
+os.makedirs(output_dir, exist_ok=True)
 
 max_workers = 4
 

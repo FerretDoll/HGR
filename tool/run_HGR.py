@@ -24,8 +24,12 @@ from reasoner.utils import dict_to_gml, draw_graph_from_gml, is_debugging
 from reasoner.config import logger, eval_logger
 from reasoner import config
 
-text_logic_forms_json = None
-diagram_logic_forms_json = None
+
+with open(config.diagram_logic_forms_json_path, 'r') as diagram_file:
+    diagram_logic_forms_json = json.load(diagram_file)
+with open(config.text_logic_forms_json_path, 'r') as text_file:
+    text_logic_forms_json = json.load(text_file)
+
 
 with open(config.model_pool_path, 'r') as model_pool_file:
     model_pool, model_id_map = load_models_from_json(json.load(model_pool_file))
@@ -341,24 +345,6 @@ def test_solve_with_model_sequence(q_id, model_id_list):
 
 
 if __name__ == "__main__":
-
-    parser = argparse.ArgumentParser(description="Solve a specific question by number.")
-    parser.add_argument('question_id', type=int, default=0, help='The id of the question to solve')
-    parser.add_argument("--use_annotated", action="store_true", help="use annotated data or generated data")
-    args = parser.parse_args()
-    if args.use_annotated:
-        print("Use annotated: True")
-        with open(config.diagram_logic_forms_json_path, 'r') as diagram_file:
-            diagram_logic_forms_json = json.load(diagram_file)
-        with open(config.text_logic_forms_json_path, 'r') as text_file:
-            text_logic_forms_json = json.load(text_file)
-    else:
-        print("Use annotated: False")
-        with open(config.pred_diagram_logic_forms_json_path, 'r') as diagram_file:
-            diagram_logic_forms_json = json.load(diagram_file)
-        with open(config.pred_text_logic_forms_json_path, 'r') as text_file:
-            text_logic_forms_json = json.load(text_file)
-
     # Test multiple questions
     evaluate_all_questions(2401, 3001)
 

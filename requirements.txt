@@ -10,3 +10,5 @@ numpy
 cython
 tensorboard
 pebble
+torch
+Cython

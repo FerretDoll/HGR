@@ -26,7 +26,7 @@ from agent.model.graphtransformer.model_args import ModelArgs
 from reasoner import config
 from reasoner.config import train_logger
 from reasoner.graph_matching import load_models_from_json, get_model
-from tool.run_RGR import get_graph_solver
+from tool.run_HGR import get_graph_solver
 
 worker_num = 4
 output_path = 'saves/RL'
@@ -495,6 +495,8 @@ def pre_store_data():
                 memory.push(*_)
             count += 1
 
+            train_logger.debug(
+                f'q_id: {q_id} - total memory: {len(memory)}, added memory: {len(tmp_memory)}, answer: {answer}')
             if count >= save_interval:
                 pkl.dump(memory, open("Memory.pkl", 'wb'))
                 count = 0
@@ -519,7 +521,6 @@ def pre_store_data_processed():
     count = 0
 
     for q_id in trange(st, ed):
-        count += 1
         q_id = str(q_id)
         if q_id not in diagram_logic_forms_json or q_id not in text_logic_forms_json or q_id not in model_sequence_json or q_id in error_ids:
             continue
@@ -528,6 +529,7 @@ def pre_store_data_processed():
             answer, tmp_memory = func_timeout(120, solve_with_question_model_sequence, args=(q_id,))
             for _ in tmp_memory:
                 memory.push(*_)
+            count += 1
             train_logger.debug(
                 f'q_id: {q_id} - total memory: {len(memory)}, added memory: {len(tmp_memory)}, answer: {answer}')
         except FunctionTimedOut:
@@ -602,7 +604,6 @@ if __name__ == "__main__":
                            num_edges=len(edge_attr_vocab), num_spatial=20, num_edge_dis=256, edge_type="one_hop",
                            multi_hop_max_dist=1)
     policy_net = GraphormerEncoder(model_args).cuda()
-    # INIT_MODEL = 'saves/RL/graph_model_RL_step5200.pt'
     INIT_MODEL = None
     if INIT_MODEL:
         match = re.search(r'step(\d+)', INIT_MODEL)
@@ -629,7 +630,7 @@ if __name__ == "__main__":
         pre_store_data()
         pre_store_data_processed()
     else:
-        if args.pretrain:
+        if args.pre_train:
             pretrain_loop(policy_net, optimizer)
         else:
             train_loop(policy_net, optimizer)
