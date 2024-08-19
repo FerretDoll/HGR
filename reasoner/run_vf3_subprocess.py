@@ -8,14 +8,14 @@ CALLBACK_FUNC_TYPE = CFUNCTYPE(None, c_char_p)
 def run_vf3(pattern_data, target_data, options=b'-f vfe -u -s'):
     solutions = ''
 
-    # 定义回调函数
+    # Define callback function
     @CALLBACK_FUNC_TYPE
     def result_callback(all_solutions_c_str):
         nonlocal solutions
         solutions = all_solutions_c_str.decode('utf-8')
 
     try:
-        # 系统判断，以决定加载的共享库是.so还是.dll
+        # System judgment to determine whether the loaded shared library is .so or .dll
         if sys.platform.startswith('win'):
             lib_path = 'vf3/bin/vf3.dll'
             kernel32 = ctypes.WinDLL('kernel32.dll')
@@ -25,10 +25,10 @@ def run_vf3(pattern_data, target_data, options=b'-f vfe -u -s'):
             lib_path = 'vf3/bin/vf3.so'
             libvf3 = ctypes.CDLL(lib_path)
 
-        # 设置 run_vf3 函数的参数类型和返回类型
+        # Set the parameter types and return types of run_vf3()
         libvf3.run_vf3.argtypes = [c_char_p, c_char_p, c_char_p, CALLBACK_FUNC_TYPE]
 
-        # 调用函数
+        # Run vf3
         libvf3.run_vf3(c_char_p(pattern_data.encode('utf-8')), c_char_p(target_data.encode('utf-8')),
                        c_char_p(options.encode('utf-8')), result_callback)
 
@@ -43,7 +43,7 @@ def run_vf3(pattern_data, target_data, options=b'-f vfe -u -s'):
 
 
 if __name__ == "__main__":
-    # 从命令行获取参数
+    # Retrieve parameters from the command line
     pattern_data = sys.argv[1]
     target_data = sys.argv[2]
     options = sys.argv[3] if len(sys.argv) > 3 else b'-f vfe -u -s'

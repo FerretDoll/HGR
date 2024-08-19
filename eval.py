@@ -19,7 +19,7 @@ import random
 from reasoner import graph_solver, config
 from reasoner.config import logger, eval_logger
 from reasoner.graph_matching import load_models_from_json, get_model
-from tool.run_HGR import get_graph_solver, check_answer, check_transformed_answer
+from tool.run_HGR import get_graph_solver, check_answer, check_transformed_answer, evaluate_all_questions
 
 random.seed(0)
 
@@ -47,9 +47,17 @@ model_args = ModelArgs(num_classes=64, max_nodes=256, num_node_type=len(node_typ
                        num_node_attr=len(node_attr_vocab), num_in_degree=256, num_out_degree=256,
                        num_edges=len(edge_attr_vocab), num_spatial=20, num_edge_dis=256, edge_type="one_hop",
                        multi_hop_max_dist=1)
-model_save_path = 'saves/RL/graph_model_RL_step13000.pt'
+parser = argparse.ArgumentParser()
+parser.add_argument("--use_annotated", action="store_true", help="use annotated data or generated data")
+parser.add_argument("--use_agent", action="store_true", help="use model selection agent")
+parser.add_argument("--model_path", type=str, help="model weight path")
+parser.add_argument("--output_path", type=str, help="output path of result json file")
+parser.add_argument("--beam_size", type=int, default=5, help="beam size for search")
+args = parser.parse_args()
+model_save_path = args.model_path
 model = GraphormerEncoder(model_args).cuda()
-model.load_state_dict(torch.load(model_save_path))
+if model_save_path:
+    model.load_state_dict(torch.load(model_save_path))
 model.eval()
 
 
@@ -141,7 +149,7 @@ def solve_with_time(q_id, model, max_step=10, beam_size=5):
            "time": None}
 
     try:
-        res = func_timeout(300, solve, kwargs=dict(q_id=q_id, model=model, max_step=max_step, beam_size=beam_size))
+        res = func_timeout(120, solve, kwargs=dict(q_id=q_id, model=model, max_step=max_step, beam_size=beam_size))
         return res
     except FunctionTimedOut:
         eval_logger.error(f'q_id: {q_id} - Timeout')
@@ -165,7 +173,7 @@ def solve(q_id, model, max_step=10, beam_size=5):
     with open(data_path, "r") as f:
         data = json.load(f)
     candidate_value_list = data['precise_value']
-    gt_id = ord(data['answer']) - 65  # 将A-D转换为0-3
+    gt_id = ord(data['answer']) - 65  # Convert A-D to 0-3
     try:
         graph_solver, target = get_graph_solver(q_id)
         graph_solver.init_solve()
@@ -181,7 +189,7 @@ def solve(q_id, model, max_step=10, beam_size=5):
                 res['time'] = str(time.time() - s_time)
                 return res
 
-        beam_search_res = func_timeout(300, beam_search,
+        beam_search_res = func_timeout(120, beam_search,
                                        kwargs=dict(graph_solver=graph_solver, model=model, max_step=max_step,
                                                    beam_size=beam_size))
         answer = beam_search_res["answer"]
@@ -205,35 +213,11 @@ def solve(q_id, model, max_step=10, beam_size=5):
         return res
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--use_annotated", action="store_true", help="use annotated data or generated data")
-parser.add_argument("--model_path", type=str, help="model weight path")
-parser.add_argument("--output_path", type=str, help="output path of result json file")
-parser.add_argument("--beam_size", type=int, default=5, help="beam size for search")
-args = parser.parse_args()
-
-
-def eval(json_output_name, beam_size):
-    st = 2401
-    ed = 3002
-    total = ed - st
-    correct = 0
-    solved = 0
-    st_time = time.time()
-    search_result_json_dict = {}
-
+def eval(st, ed):
     for q_id in trange(st, ed):
         try:
-            res = func_timeout(300, solve, kwargs=dict(q_id=q_id, model=model, max_step=10, beam_size=beam_size))
+            res = func_timeout(120, solve, kwargs=dict(q_id=q_id, model=model, max_step=10, beam_size=5))
             eval_logger.debug(res)
-            if res['answer'] != None:
-                solved += 1
-                for k, v in res.items():
-                    res[k] = str(v)
-                search_result_json_dict[res["id"]] = res
-
-                if res['correctness'] == "yes":
-                    correct += 1
         except FunctionTimedOut:
             eval_logger.error(f'q_id: {q_id} - Timeout')
             continue
@@ -241,15 +225,12 @@ def eval(json_output_name, beam_size):
             eval_logger.error(f'q_id: {q_id} - Error: {e}')
             continue
 
-    ed_time = time.time()
-
-    print(f"Solved: {solved}, Correctness: {correct}, CorrectRate: {correct * 1.0 / total}")
-    print(f"Time Cost: {ed_time - st_time} seconds.")
-    json.dump(search_result_json_dict, open(json_output_name + 'correct' + str(correct) + '.json', 'w'))
-
 
 if __name__ == "__main__":
     torch.multiprocessing.set_start_method('spawn')
     print("Use annotated: ", args.use_annotated)
-    # eval(json_output_name=args.output_path, beam_size=5)
-    print(solve_with_time(2401, model, max_step=10, beam_size=5))
+    if args.use_agent:
+        eval(st=2401, ed=3002)
+    else:
+        evaluate_all_questions(st=2401, ed=3002)
+    # print(solve_with_time(2401, model, max_step=10, beam_size=5))

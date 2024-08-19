@@ -7,10 +7,11 @@ import argparse
 import re
 
 from reasoner import config
+from tool.process_logs import process_log_file
 
 
 with open(config.error_ids_path, 'r') as file:
-    error_ids = {int(line.strip()) for line in file}  # 确保错误ID是整数
+    error_ids = {int(line.strip()) for line in file}
 
 
 def quad_alias(diagram_type, QuadAlias):
@@ -128,9 +129,15 @@ def print_type_acc(Result_Acc):
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--log_file_path", type=str, required=True, help="path to the log file.")
+    args = parser.parse_args()
+    process_log_file(args.log_file_path)
+    output_dir = os.path.dirname(args.log_file_path)
+
     st = 2401
     ed = 3001
-    result_file = 'output/correct_data.json'
+    result_file = os.path.join(output_dir, 'correct_data.json')
 
     DATA_PATH = config.db_dir_single
 
@@ -139,9 +146,9 @@ if __name__ == '__main__':
     # read the result json file
     result_data = json.load(open(result_file))
 
-    # 生成所有题目ID并排除错误ID
+    # Generate all question IDs and eliminate incorrect IDs
     all_question_ids = set(range(st, ed))
-    valid_question_ids = list(all_question_ids - error_ids)  # 将集合转换为列表
+    valid_question_ids = list(all_question_ids - error_ids)  # Convert a set to a list
     total = len(valid_question_ids)
 
     # compute acc

@@ -9,7 +9,7 @@ from sympy import sympify, N
 
 
 def convert_to_vec(points, exist_line):
-    # 转换为向量
+    # Convert to vector
     # use the vector to represent line
     # only for straight line
     vec = []
@@ -19,7 +19,7 @@ def convert_to_vec(points, exist_line):
 
 
 def convert_to_r_theta(vec):
-    # 转换为角度
+    # Convert to angle
     # only for straight line
 
     center = [0, 0]
@@ -72,7 +72,7 @@ def from_points_to_line(point_list):
     return lines
 
 
-def check_same(item1, item2):  # 判断两个item是否为同一份封闭图形
+def check_same(item1, item2):  # Determine whether two items are the same enclosed graphic
     if len(item1) != len(item2):
         return False
     else:
@@ -138,7 +138,7 @@ def check_contain(_list, _tuple):
 
 
 def reduce_same(opt):
-    # 去掉重复的封闭图形
+    # Remove duplicate closed shapes
     dde = []
     ooo = []
 
@@ -171,13 +171,13 @@ def reduce_same(opt):
 
 def remove_redundant_element(_list, sorted_func=sorted):
     """
-    去重列表里面左右颠倒重复的元素
+    Remove duplicate elements from the list that are reversed left and right
 
     Args:
-        _list: 待去重列表
-        sorted_func: 排序函数
+        _list: List to be removed
+        sorted_func: Sort function
     Return:
-        去重后的集合
+        List after removed
     {(1, 2), ('a', 'b')}
     """
     if not _list:
@@ -210,7 +210,7 @@ def remove_redundant_angle(_list):
 
 def list_cluster_gap(data, max_gap):
     """
-    对列表进行差值聚类
+    Perform differential clustering on the list
     """
     data.sort()
     groups = [[data[0]]]
@@ -338,22 +338,23 @@ def angle_area_formula(a, b, angle):
 
 def closest_to_number(sympy_list, target):
     """
-    给定一个包含 sympy 表达式的列表和一个目标数字，返回列表中与目标数字最接近的元素。
+    Given a list containing a sympy expression and a target number,
+    return the element in the list that is closest to the target number.
 
     Args:
-        sympy_list (list): 包含 sympy 表达式的列表
-        target (float): 目标数字
+        sympy_list (list): List containing sympy expressions
+        target (float): Target number
 
     Returns:
-        closest_expr: 与目标数字最接近的 sympy 表达式
+        closest_expr: The closest sympy expression to the target number
     """
-    # 将 sympy 表达式计算为数值
+    # Compute the sympy expression as a numerical value
     numerical_list = [N(expr) for expr in sympy_list]
 
-    # 找到与目标数字最接近的数值
+    # Find the value closest to the target number
     closest_value = min(numerical_list, key=lambda x: abs(x - target))
 
-    # 找到与目标数字最接近的 sympy 表达式
+    # Find the sympy expression that is closest to the target number
     closest_expr = sympy_list[numerical_list.index(closest_value)]
 
     return closest_expr

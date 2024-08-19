@@ -1,5 +1,7 @@
 import os
 import logging
+from datetime import datetime
+
 from sympy import pi
 
 
@@ -31,7 +33,7 @@ else:
 eval_logger = logging.getLogger('eval_logger')
 
 # 创建文件处理器用于将日志记录到文件
-file_handler = logging.FileHandler('experiment.log')
+file_handler = logging.FileHandler('output/eval.log')
 
 # 创建格式化器并将其添加到文件处理器
 file_formatter = logging.Formatter('%(asctime)s - %(message)s')
@@ -47,7 +49,7 @@ eval_logger.setLevel(logging.DEBUG)
 train_logger = logging.getLogger('train_logger')
 
 # 创建文件处理器用于将日志记录到文件
-file_handler = logging.FileHandler('training.log')
+file_handler = logging.FileHandler('output/training.log')
 
 # 创建格式化器并将其添加到文件处理器
 file_formatter = logging.Formatter('%(asctime)s - %(message)s')
@@ -119,4 +121,4 @@ pred_text_logic_forms_json_path = os.path.join(db_dir, pred_text_logic_forms_jso
 model_pool_path = os.path.join("reasoner", "graph_models", "graph_models.json")
 model_pool_test_path = os.path.join("reasoner", "graph_models", "graph_models_test.json")
 
-error_ids_path = os.path.join("db", "error_ids.txt")
+error_ids_path = os.path.join("db", "parsing_error_ids.txt")

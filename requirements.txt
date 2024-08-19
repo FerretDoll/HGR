@@ -9,3 +9,4 @@ tqdm
 numpy
 cython
 tensorboard
+pebble

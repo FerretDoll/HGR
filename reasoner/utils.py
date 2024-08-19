@@ -15,31 +15,31 @@ def is_debugging():
 
 def parse_grf_file(filename, force_undirected=False, edges_have_labels=True):
     if force_undirected:
-        graph = nx.Graph()  # 使用无向图表示
+        graph = nx.Graph()  # Use undirected graph representation
     else:
-        graph = nx.DiGraph()  # 使用有向图表示
+        graph = nx.DiGraph()  # Use a directed graph to represent
 
     with open(filename, 'r') as f:
         lines = [line.strip() for line in f if line.strip() and not line.startswith('#')]
 
     if len(lines) < 1:
-        raise ValueError("文件格式错误：缺少节点数量信息。")
+        raise ValueError("File format error: Missing information on the number of nodes.")
 
     try:
         num_nodes = int(lines[0])
     except ValueError:
-        raise ValueError("文件格式错误：节点数量不是有效的整数。")
+        raise ValueError("File format error: The number of nodes is not a valid integer.")
 
     if len(lines) < num_nodes + 1:
-        raise ValueError("文件格式错误：节点信息不完整。")
+        raise ValueError("File format error: Node information is incomplete.")
 
-    node_lines = lines[1:num_nodes + 1]  # 节点信息部分
-    edge_lines = lines[num_nodes + 1:]  # 边信息部分
+    node_lines = lines[1:num_nodes + 1]  # Node information
+    edge_lines = lines[num_nodes + 1:]  # Edge information
 
     for line in node_lines:
         parts = line.split()
         if len(parts) != 2:
-            raise ValueError("文件格式错误：节点信息格式不正确。")
+            raise ValueError("File format error: Node information format is incorrect.")
         node_id, node_attr = map(int, parts)
         graph.add_node(node_id, attr=node_attr)
 
@@ -52,21 +52,23 @@ def parse_grf_file(filename, force_undirected=False, edges_have_labels=True):
         try:
             num_edges = int(edge_lines[line_index])
         except ValueError:
-            raise ValueError("文件格式错误：边数量不是有效的整数。")
+            raise ValueError("File format error: The number of edges is not a valid integer.")
         line_index += 1
 
         for _ in range(num_edges):
             if line_index >= len(edge_lines):
-                raise ValueError("文件格式错误：边信息不完整。")
+                raise ValueError("File format error: incomplete edge information.")
             parts = edge_lines[line_index].split()
             if edges_have_labels:
                 if len(parts) != 3:
-                    raise ValueError("文件格式错误：边信息格式不正确，应为'源节点 目标节点 边属性'。")
+                    raise ValueError("File format error: The edge information format is incorrect, "
+                                     "it should be 'Source Node Target Node Edge Attribute'.")
                 src, dst, edge_attr = map(int, parts)
                 graph.add_edge(src, dst, attr=edge_attr)
             else:
                 if len(parts) != 2:
-                    raise ValueError("文件格式错误：边信息格式不正确，应为'源节点 目标节点'（没有边属性）。")
+                    raise ValueError("File format error: The edge information format is incorrect, "
+                                     "it should be 'source node target node' (without edge attributes).")
                 src, dst = map(int, parts)
                 graph.add_edge(src, dst)
             line_index += 1
@@ -105,7 +107,7 @@ def visualize_graphs(pattern_graph, global_graph, mapping):
     pos_pattern = nx.spring_layout(pattern_graph, k=1)
     pos_global = nx.spring_layout(global_graph, k=1)
 
-    # 为节点设置颜色
+    # Set color for nodes
     global_min, global_max = get_global_attribute_range(pattern_graph, global_graph, attribute='attr')
 
     pattern_node_colors = get_node_color_map(pattern_graph, global_min, global_max, attribute='attr')
@@ -118,7 +120,7 @@ def visualize_graphs(pattern_graph, global_graph, mapping):
     nx.draw_networkx_nodes(pattern_graph, pos=pos_pattern, node_color=pattern_node_colors, ax=ax1, node_size=750)
     nx.draw_networkx_labels(pattern_graph, pos=pos_pattern, ax=ax1, font_size=24)
 
-    # 检查 pattern_graph 中的边是否有 'attr' 属性
+    # Check if the edges in pattern_graph have the 'attr' attribute
     if all('attr' in pattern_graph[u][v] for u, v in pattern_graph.edges()):
         pattern_edge_colors = get_edge_color_map(pattern_graph, global_min, global_max, attribute='attr')
         nx.draw_networkx_edges(pattern_graph, pos=pos_pattern, ax=ax1,
@@ -133,7 +135,7 @@ def visualize_graphs(pattern_graph, global_graph, mapping):
     nx.draw_networkx_nodes(global_graph, pos=pos_global, node_color=global_node_colors, ax=ax2, node_size=750)
     nx.draw_networkx_labels(global_graph, pos=pos_global, ax=ax2, font_size=24)
 
-    # 检查 global_graph 中的边是否有 'attr' 属性
+    # Check if the edges in global_graph have the 'attr' attribute
     if all('attr' in global_graph[u][v] for u, v in global_graph.edges()):
         global_edge_colors = get_edge_color_map(global_graph, global_min, global_max, attribute='attr')
         nx.draw_networkx_edges(global_graph, pos=pos_global, ax=ax2,
@@ -143,7 +145,6 @@ def visualize_graphs(pattern_graph, global_graph, mapping):
 
     ax2.set_title('Graph', fontsize=24)
 
-    # 映射线
     for pair in mapping.split(':'):
         if pair:
             global_node, pattern_node = map(int, pair.split(','))
@@ -160,10 +161,10 @@ def filter_duplicates(match_results):
     seen_sets = set()
 
     for match in match_results:
-        # 提取全局图中的节点ID
+        # Extract node IDs from the global graph
         global_ids = {pair.split(',')[0] for pair in match.split(':') if pair}
 
-        # 如果这组ID之前没有遇到过，就添加到结果中
+        # If this set of IDs has not been encountered before, add it to the results
         if frozenset(global_ids) not in seen_sets:
             unique_matches.append(match)
             seen_sets.add(frozenset(global_ids))
@@ -175,38 +176,38 @@ def group_by_id_sets(match_results):
     grouped_matches = {}
 
     for match in match_results:
-        # 提取全局图中的节点ID
+        # Extract node IDs from the global graph
         global_ids = frozenset(pair.split(',')[0] for pair in match.split(':') if pair)
 
-        # 如果这组ID之前没有遇到过，初始化一个新列表
+        # If this set of IDs has not been encountered before, initialize a new list
         if global_ids not in grouped_matches:
             grouped_matches[global_ids] = []
 
-        # 将当前映射添加到对应的列表中
+        # Add the current mapping to the corresponding list
         grouped_matches[global_ids].append(match)
 
-    # 将所有分组的列表收集到一个二维列表中
+    # Collect all grouped lists into a two-dimensional list
     grouped_list = list(grouped_matches.values())
 
     return grouped_list
 
 
 def json_to_grf(json_data, is_directed=True):
-    # 初始化GRF数据字符串
+    # Initialize GRF data string
     grf_data = ""
 
-    # 获取节点数量并添加到GRF数据字符串中
+    # Retrieve the number of nodes and add them to the GRF data string
     num_nodes = len(json_data['node'])
     grf_data += f"{num_nodes}\n"
 
-    # 添加每个节点的类型
+    # Add the type of each node
     for i, node in enumerate(json_data['node']):
         node_type = json_data['node_type'][i] if 'node_type' in json_data and json_data['node_type'][
             i] != 'None' else ''
-        node_type_int = NODE_TYPE_TO_INT.get(node_type, 0)  # 默认值为0，如果类型未找到
+        node_type_int = NODE_TYPE_TO_INT.get(node_type, 0)  # The default value is 0, if the type is not found
         grf_data += f"{i} {node_type_int}\n"
 
-    # 维护一个集合，用于存储已添加的边
+    # Maintain a collection for storing added edges
     added_edges = set()
 
     for src in range(num_nodes):
@@ -214,45 +215,45 @@ def json_to_grf(json_data, is_directed=True):
         for edge_index, src_node in enumerate(json_data['edge_index'][0]):
             if src_node == src:
                 dst = json_data['edge_index'][1][edge_index]
-                # 对于无向图，检查边是否已添加
+                # For undirected graphs, check if edges have been added
                 if not is_directed and (dst, src) in added_edges:
                     continue
                 edges_from_node.append(edge_index)
 
-        # 更新边的数量
+        # Update the number of edges
         num_edges = len(edges_from_node)
         grf_data += f"{num_edges}\n"
         for edge_index in edges_from_node:
             dst = json_data['edge_index'][1][edge_index]
             edge_attr = json_data['edge_attr'][edge_index] if edge_index < len(json_data['edge_attr']) else ''
-            edge_attr_int = EDGE_TYPE_TO_INT.get(edge_attr, 0)  # 如果类型未找到，默认值为0
-            # 添加边到GRF数据字符串
+            edge_attr_int = EDGE_TYPE_TO_INT.get(edge_attr, 0)  # If the type is not found, the default value is 0
+            # Add edges to GRF data string
             grf_data += f"{src} {dst} {edge_attr_int}\n"
-            # 将边添加到已添加边的集合中
+            # Add edges to the collection of added edges
             added_edges.add((src, dst))
 
     return grf_data
 
 
 def json_to_grf_model(json_data):
-    # 初始化GRF数据字符串
+    # Initialize GRF data string
     grf_data = ""
 
-    # 获取节点数量并添加到GRF数据字符串中
+    # Retrieve the number of nodes and add them to the GRF data string
     nodes = json_data['nodes']
     num_nodes = len(nodes)
     grf_data += f"{num_nodes}\n"
 
-    # 创建节点ID到整数的映射
+    # Create a mapping from node ID to integer
     id_to_int = {node['data']['id']: i for i, node in enumerate(nodes)}
 
-    # 添加每个节点的类型
+    # Add the type of each node
     for node in nodes:
         node_type = node['data']['type']
         node_type_int = NODE_TYPE_TO_INT.get(node_type, 0)  # 默认值为0，如果类型未找到
         grf_data += f"{id_to_int[node['data']['id']]} {node_type_int}\n"
 
-    # 遍历每个节点，添加边
+    # Traverse each node and add edges
     edges = json_data['edges']
     for src_id, group in groupby(sorted(edges, key=lambda x: x['data']['source']), key=lambda x: x['data']['source']):
         group_list = list(group)
@@ -300,10 +301,10 @@ def dict_to_gml(json_data, is_directed=True):
 
 
 def draw_graph_from_gml(gml_data):
-    # 创建图
+    # Create Graph
     G = nx.parse_gml(gml_data)
 
-    # 为不同种类的边和节点指定颜色
+    # Specify colors for different types of edges and nodes
     edge_colors = {
         "Connected": "black",
         "Equal": "gray",
@@ -339,7 +340,7 @@ def draw_graph_from_gml(gml_data):
         "Angle": "cyan"
     }
 
-    # 使用spring布局
+    # Using Spring Layout
     pos = nx.spring_layout(G, k=0.25, iterations=20)
 
     edge_trace = []
@@ -351,16 +352,16 @@ def draw_graph_from_gml(gml_data):
         middlex = (x0 + x1) / 2
         middley = (y0 + y1) / 2
 
-        # 将边的属性转换为字符串
+        # Convert the properties of edges to strings
         edge_attr = ', '.join([f"{key}: {value}" for key, value in edge[2].items()])
 
-        # 创建带有曲线的边
+        # Create edges with curves
         edge_trace.append(go.Scatter(x=[x0, middlex, x1, None],
                                      y=[y0, middley, y1, None],
                                      mode='lines',
                                      line=dict(width=1, color=edge_color),
                                      hoverinfo='text',
-                                     text=edge_attr))  # 显示边的属性
+                                     text=edge_attr))  # Display the attributes of edges
 
     node_trace = go.Scatter(x=[], y=[], hovertext=[], text=[], mode='markers+text', textposition="bottom center",
                             hoverinfo="text", marker={'size': 10, 'color': []})
@@ -371,7 +372,7 @@ def draw_graph_from_gml(gml_data):
         node_trace['y'] += tuple([y])
         node_color = node_colors.get(node[1].get('type', 'black'), 'black')
         node_trace['marker']['color'] += tuple([node_color])
-        node_info = f"{node[0]}: {node[1]}"  # 显示节点属性
+        node_info = f"{node[0]}: {node[1]}"  # Display the attributes of nodes
         node_trace['hovertext'] += tuple([node_info])
         node_trace['text'] += tuple([str(node[0])])
 

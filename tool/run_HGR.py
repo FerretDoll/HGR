@@ -8,6 +8,7 @@ import time
 import multiprocessing
 import logging
 import logging.handlers
+from datetime import datetime
 
 import numpy as np
 from func_timeout import func_timeout, FunctionTimedOut
@@ -17,7 +18,7 @@ from tqdm import tqdm
 from GeoDRL.converter import Text2Logic, Logic2Graph
 from GeoDRL.logic_solver import LogicSolver
 from reasoner.graph_matching import load_models_from_json, get_candidate_models_from_pool, match_graphs, get_model
-from reasoner.logic_graph import GlobalGraph
+from reasoner.hologram import GlobalHologram
 from reasoner.graph_solver import GraphSolver
 from reasoner.utils import dict_to_gml, draw_graph_from_gml, is_debugging
 from reasoner.config import logger, eval_logger
@@ -48,7 +49,7 @@ def get_global_graph(parser, target, draw_graph=False):
         graph_gml = dict_to_gml(graph_dict, False)
         draw_graph_from_gml(graph_gml)
 
-    return GlobalGraph.from_dict(graph_dict)
+    return GlobalHologram.from_dict(graph_dict)
 
 
 def get_graph_solver(q_id):
@@ -69,7 +70,7 @@ def solve_with_model_sequence(q_id, model_id_list):
         with open(data_path, "r") as f:
             data = json.load(f)
         candidate_value_list = data['precise_value']
-        gt_id = ord(data['answer']) - 65  # 将A-D转换为0-3
+        gt_id = ord(data['answer']) - 65  # Convert A-D to 0-3
 
         graph_solver, target = get_graph_solver(q_id)
         models = []
@@ -111,7 +112,7 @@ def solve_question(q_id):
         with open(data_path, "r") as f:
             data = json.load(f)
         candidate_value_list = data['precise_value']
-        gt_id = ord(data['answer']) - 65  # 将A-D转换为0-3
+        gt_id = ord(data['answer']) - 65  # Convert A-D to 0-3
 
         graph_solver, target = get_graph_solver(q_id)
         # graph_solver.solve()
@@ -130,7 +131,7 @@ def solve_question(q_id):
             if check_answer(answer, candidate_value_list, gt_id):
                 res["correctness"] = "yes"
             else:
-                # 可能需要将弧度转换成度数后再验证答案
+                # It may be necessary to convert radians to degrees before verifying the answer
                 answer_degrees = np.degrees(float(answer))
                 if check_answer(answer_degrees, candidate_value_list, gt_id):
                     res["correctness"] = "yes"
@@ -148,11 +149,11 @@ def solve_question(q_id):
         res['time'] = str(time.time() - s_time)
         return res
 
-    # 清理资源
+    # Clean up resources
     del graph_solver
     del target
     del candidate_value_list
-    gc.collect()  # 强制垃圾回收
+    gc.collect()
 
     return res
 
@@ -184,24 +185,23 @@ def worker(q_id, log_queue):
     logger.setLevel(logging.DEBUG)
 
     try:
-        # 执行题目求解函数并设置超时时间为120秒
         res = func_timeout(120, solve_question, args=(q_id,))
 
-        # 创建日志记录并放入日志队列
+        # Create log records and place them in the log queue
         log_record = logger.makeRecord(
             logger.name, logging.DEBUG, __file__, 0,
             res, None, None
         )
         log_queue.put(log_record)
     except FunctionTimedOut:
-        # 处理超时异常并记录日志
+        # Handle timeout exceptions and record logs
         log_record = logger.makeRecord(
             logger.name, logging.ERROR, __file__, 0,
             f"Error occurred while solving question {q_id}: FunctionTimedOut.", None, None
         )
         log_queue.put(log_record)
     except Exception as e:
-        # 处理其他异常并记录日志
+        # Handle other exceptions and record logs
         log_record = logger.makeRecord(
             logger.name, logging.ERROR, __file__, 0,
             f"Error occurred while solving question {q_id}: {e}", None, None
@@ -211,7 +211,7 @@ def worker(q_id, log_queue):
 
 def evaluate_all_questions(st, ed):
     with open(config.error_ids_path, 'r') as file:
-        error_ids = {int(line.strip()) for line in file}  # 确保错误ID是整数
+        error_ids = {int(line.strip()) for line in file}  # Ensure that the error ID is an integer
 
     all_question_ids = set(range(st, ed))
     valid_question_ids = list(all_question_ids - error_ids)
@@ -220,9 +220,9 @@ def evaluate_all_questions(st, ed):
 
     print(f"Removed {removed_count} questions with parsing errors.")
 
-    # 日志队列和日志监听进程
+    # Log queue and log listening process
     log_queue = multiprocessing.Queue()
-    log_listener = multiprocessing.Process(target=log_listener_process, args=(log_queue, 'experiment.log'))
+    log_listener = multiprocessing.Process(target=log_listener_process, args=(log_queue, 'output/eval.log'))
     log_listener.start()
 
     processes = []
@@ -238,58 +238,9 @@ def evaluate_all_questions(st, ed):
     for proc in processes:
         proc.join()
 
-    # 停止日志监听进程
+    # Stop the log listening process
     log_queue.put_nowait(None)
     log_listener.join()
-
-
-# def evaluate_all_questions(st, ed):
-#     with open(config.error_ids_path, 'r') as file:
-#         error_ids = {int(line.strip()) for line in file}  # 确保错误ID是整数
-
-#     # 生成所有题目ID并排除错误ID
-#     all_question_ids = set(range(st, ed))
-#     valid_question_ids = list(all_question_ids - error_ids)  # 将集合转换为列表
-#     total = len(valid_question_ids)
-#     removed_count = len(all_question_ids) - total
-
-#     print(f"Removed {removed_count} questions with parsing errors.")
-
-#     correct = 0
-#     solved = 0
-#     st_time = time.time()
-#     result_json_dict = {}
-
-#     for q_id in tqdm(valid_question_ids):
-#         try:
-#             # 设置超时时间为60秒
-#             res = func_timeout(120, solve_question, args=(q_id,))
-#         except FunctionTimedOut:
-#             logger.error(f"Error occurred while solving question {q_id}: FunctionTimedOut.")
-#             continue
-#         except Exception as e:
-#             logger.error(f"Error occurred while solving question {q_id}: {e}")
-#             continue
-
-#         if res:
-#             for k, v in res.items():
-#                 res[k] = str(v)
-#             if res['answer'] is not None:
-#                 solved += 1
-
-#                 if res['correctness'] == "yes":
-#                     result_json_dict[res["id"]] = res
-#                     correct += 1
-#             eval_logger.debug(res)
-#         else:
-#             logger.error(f"Error occurred while solving question {q_id}.")
-
-#     ed_time = time.time()
-
-#     print(f"Total: {total}, Solved: {solved}, Correctness: {correct}, CorrectRate: {correct * 1.0 / total}")
-#     print(f"Time Cost: {ed_time - st_time} seconds.")
-#     with open('correct_' + str(correct) + '.json', 'w') as outfile:
-#         json.dump(result_json_dict, outfile, indent=4)
 
 
 def check_answer(answer, candidate_value_list, gt_id):
@@ -310,7 +261,7 @@ def check_transformed_answer(answer, candidate_value_list, gt_id):
         if check_answer(answer, candidate_value_list, gt_id):
             return True, answer
         else:
-            # 可能需要将弧度转换成度数后再验证答案
+            # It may be necessary to convert radians to degrees before verifying the answer
             answer_degrees = np.degrees(float(answer))
             if check_answer(answer_degrees, candidate_value_list, gt_id):
                 answer = answer_degrees
@@ -367,7 +318,6 @@ def test_one_question(q_id):
         logger.debug(res)
     else:
         try:
-            # 设置超时时间为60秒
             res = func_timeout(120, solve_question, args=(q_id,))
             logger.debug(res)
         except FunctionTimedOut:
@@ -384,7 +334,6 @@ def test_solve_with_model_sequence(q_id, model_id_list):
         logger.debug(res)
     else:
         try:
-            # 设置超时时间为60秒
             res = func_timeout(120, solve_with_model_sequence, args=(q_id, model_id_list,))
             logger.debug(res)
         except FunctionTimedOut:
@@ -410,19 +359,19 @@ if __name__ == "__main__":
         with open(config.pred_text_logic_forms_json_path, 'r') as text_file:
             text_logic_forms_json = json.load(text_file)
 
-    # 测试多个题目
+    # Test multiple questions
     evaluate_all_questions(2401, 3001)
 
     # try:
     #     q_id = args.question_id
 
-    #     # 测试解答单个题目
+    #     # Test and answer single questions
     #     # test_one_question(q_id)
 
-    #     # 测试模型匹配
+    #     # Test model matching
     #     test_graph_matching(q_id)
 
-    #     # 绘制全局图
+    #     # Draw a global map
     #     # test_draw_global_graph(q_id)
 
     #     # test_solve_with_model_sequence(q_id, [45, 53])

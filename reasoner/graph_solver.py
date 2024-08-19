@@ -35,9 +35,9 @@ class GraphSolver:
 
     @staticmethod
     def is_pure_radian(expr):
-        # 确保表达式仅由 pi 和可能的数字乘子组成
+        # Ensure that the expression consists only of pi and possible numerical multipliers
         if expr.has(pi):
-            # 只包含 pi 且不包含其他变量或额外的符号
+            # Contains only pi and does not include any other variables or additional symbols
             if isinstance(expr, Mul) and all(isinstance(arg, (Rational, pi.__class__)) for arg in expr.args):
                 return True
         return False
@@ -45,32 +45,32 @@ class GraphSolver:
     @staticmethod
     def format_value(value):
         try:
-            # 尝试将值转换为浮点数并四舍五入
+            # Attempt to convert the value to a floating-point number and round it to the nearest integer
             if value.is_Float:
-                # 如果数值是整数，则返回整数形式
+                # If the value is an integer, return it in integer form
                 if value == round(value):
                     return str(int(value))
                 else:
-                    formatted = f"{value:.{2}f}"  #保留两位小数
+                    formatted = f"{value:.{2}f}"  # Keep two decimal places
                     if '.' in formatted:
                         formatted = formatted.rstrip('0')
                         if formatted[-1] == '.':
                             formatted = formatted[:-1]
                     return formatted
             else:
-                # 对于复杂表达式，返回一个更简洁的字符串表示
-                return str(value.simplify())  # 简化表达式后转换为字符串
+                # For complex expressions, return a more concise string representation
+                return str(value.simplify())  # Simplify the expression and convert it to a string
         except AttributeError:
             pass
-        return str(value)  # 直接返回原值的字符串形式，适用于非数字值
+        return str(value)  # Directly return the original value in string form, suitable for non-numeric values
 
     @staticmethod
     def evaluate_if_possible(expr):
         if expr is None:
             return None
-        # 检查表达式是否能被解析为一个具体数字
+        # Check if the expression can be parsed into a specific number
         if expr.is_number:
-            return N(expr)  # 使用N()来评估表达式
+            return N(expr)  # Use N() to evaluate expressions
         return expr
 
     @staticmethod
@@ -80,15 +80,16 @@ class GraphSolver:
     @staticmethod
     def find_equations_and_common_variables(equation_vars, solved_equations, knowns):
         """
-        返回一个二维列表，每个列表中包含具有相同两个变量且只有这两个变量的方程组，并返回对应的变量列表。
+        Return a two-dimensional list, each containing a system of equations with the same two variables
+        and only these two variables, and return the corresponding list of variables.
 
         Args:
-            equation_vars (list): [(eq, vars_set), ...] 形式的方程和变量集合
-            solved_equations (list): 已经解决的方程
+            equation_vars (list): [(eq, vars_set), ...] Formal equations and sets of variables
+            solved_equations (list): Solved equations
 
         Returns:
-            groups (list): 包含方程的二维列表
-            variables (list): 每个子列表对应的公共变量
+            groups (list): A two-dimensional list containing equations
+            variables (list): Common variables corresponding to each sub list
         """
         groups = []
         variables = []
@@ -120,7 +121,7 @@ class GraphSolver:
         return iter(lambda: list(islice(it, size)), [])
 
     def print_node_value(self, print_new=False):
-        # 打印更新后的图节点信息
+        # Print updated graph node information
         for node, attrs in self.global_graph.graph.nodes(data=True):
             if attrs['value'] == 'None':
                 attrs['float_value'] = 'None'
@@ -157,7 +158,7 @@ class GraphSolver:
             return []
 
     def replace_and_evaluate(self, target_equation):
-        # 替换 target_equation 中的符号
+        # Replace the symbols in target_equation
         for node_id, symbol in self.symbols.items():
             target_equation = target_equation.subs(symbols(node_id), symbol)
 
@@ -171,11 +172,11 @@ class GraphSolver:
             if value.has(pi) and self.is_pure_radian(value):
                 numeric_values[var] = value
             else:
-                evaluated_value = self.evaluate_if_possible(value)  # 尝试将表达式转换为数字
+                evaluated_value = self.evaluate_if_possible(value)  # Attempt to convert the expression to a number
                 if evaluated_value.is_number:
-                    numeric_values[var] = self.format_value(value)  # 保存转换后的数值
+                    numeric_values[var] = self.format_value(value)  # Save the converted value
 
-        # 更新 global_graph 中对应的节点值
+        # Update the corresponding node values in global_graph
         for var_name, value in numeric_values.items():
             var_name_str = str(var_name)
             if var_name_str in self.global_graph.graph.nodes:
@@ -184,7 +185,7 @@ class GraphSolver:
                     if node_value == 'None':
                         node_value = []
                     node_value.append(str(value))
-                    self.global_graph.modify_node_value(var_name_str, node_value)  # 更新节点值
+                    self.global_graph.modify_node_value(var_name_str, node_value)  # Update node values
                     self.current_new.add(var_name_str)
                     equations = self.node_value_equations_dict.setdefault(var_name_str, [])
                     equations.append(Eq(var_name, sympify(value), evaluate=False))
@@ -199,23 +200,23 @@ class GraphSolver:
                         equations = []
                         for single_value in node_value:
                             if not isNumber(single_value):
-                                # 尝试解析节点值为表达式
+                                # Attempt to parse node values into expressions
                                 parsed_expr = sympify(single_value)
-                                # 获取表达式中的所有符号
+                                # Retrieve all symbols in the expression
                                 symbols_in_expr = parsed_expr.atoms(Symbol)
 
-                                # 如果表达式只包含一个符号
+                                # If the expression contains only one symbol
                                 if len(symbols_in_expr) == 1:
                                     single_symbol = next(iter(symbols_in_expr))
 
-                                    # 检查这个符号是否在 numeric_values 中
+                                    # Check if this symbol is in numeric_values
                                     if str(single_symbol) == str(var_name):
-                                        # 替换符号为其数值
+                                        # Replace the symbol with its numerical value
                                         new_value = parsed_expr.subs(single_symbol, numeric_values[var_name])
 
-                                        # 检查新值是否是一个纯数字
+                                        # Check if the new value is a pure number
                                         if new_value.is_number:
-                                            # 更新节点值
+                                            # Update node values
                                             new_format_value = self.format_value(new_value)
                                             new_node_value.append(new_format_value)
                                             self.known_var[self.symbols[node_id]] = new_format_value
@@ -235,7 +236,7 @@ class GraphSolver:
                             self.current_new.add(node_id)
                             self.node_value_equations_dict[node_id] = list(set(equations))
                     except SympifyError:
-                        # 如果解析失败或节点值不是表达式，忽略该节点
+                        # If parsing fails or the node value is not an expression, ignore the node
                         continue
 
         self.known_var.update(numeric_values)
@@ -246,11 +247,12 @@ class GraphSolver:
         self.equations.extend(self.model_equations)
         self.equations = list(set(self.equations))
         self.current_new = set()
-        # 创建两个列表，一个用于存放基本方程，一个用于存放包含三角函数的方程
+        # Create two lists, one for storing basic equations
+        # and one for storing equations containing trigonometric functions
         base_equations = []
         complex_equations = []
 
-        # 遍历方程列表，检查每个方程是否包含三角函数
+        # Traverse the equation list and check if each equation contains trigonometric functions
         for eq in self.equations:
             if eq.has(sin, cos, tan, sec, csc, cot):
                 complex_equations.append(eq)
@@ -280,8 +282,8 @@ class GraphSolver:
             logger.debug("No solution found for base equations")
 
         if len(complex_equations) > 0:
-            # 由于求解非线性方程组需要耗费大量时间，因此这里对求解算法进行优化
-            # 使用列表推导式应用替换
+            # Due to the time-consuming nature of solving nonlinear systems of equations,
+            # optimization of the solving algorithm is conducted here
             if len(base_solutions) > 0:
                 substituted_equations = list(set([eq.subs(base_solution) for eq in complex_equations]))
                 logger.debug(f"Substituted Complex Equations: {substituted_equations}")
@@ -290,13 +292,13 @@ class GraphSolver:
                 substituted_equations = list(set([eq for eq in complex_equations]))
                 knowns = {key: sympify(value) for key, value in self.known_var.items()}
 
-            # 统计每个方程包含的变量数
+            # Count the number of variables included in each equation
             equation_vars = [(eq, self.equation_variables(eq)) for eq in substituted_equations]
             equation_vars_sorted = sorted(equation_vars, key=lambda x: len(x[1]))
             solved_equations = []
             remaining_equations = substituted_equations.copy()
             logger.debug("Start solving complex equations in step 1")
-            # 步骤1：先求解只包含单一变量的方程
+            # Step 1: First, solve the equation that only contains a single variable
             while True:
                 single_unknown_eq = None
                 for eq, vars_set in equation_vars_sorted:
@@ -329,25 +331,25 @@ class GraphSolver:
                                         try:
                                             for single_value in node_value:
                                                 if not isNumber(single_value):
-                                                    # 尝试解析节点值为表达式
+                                                    # Attempt to parse node values into expressions
                                                     parsed_expr = sympify(single_value)
-                                                    # 获取表达式中的所有符号
+                                                    # Retrieve all symbols in the expression
                                                     symbols_in_expr = parsed_expr.atoms(Symbol)
 
-                                                    # 如果表达式只包含一个符号
+                                                    # If the expression contains only one symbol
                                                     if len(symbols_in_expr) == 1:
                                                         single_symbol = next(iter(symbols_in_expr))
 
-                                                        # 检查这个符号是否在 numeric_values 中
+                                                        # Check if this symbol is in numeric_values
                                                         if str(single_symbol) == str(unknown_var):
                                                             candi_node_values = []
                                                             for s in sol:
-                                                                # 替换符号为其数值
+                                                                # Replace the symbol with its numerical value
                                                                 new_value = parsed_expr.subs(single_symbol, s)
 
-                                                                # 检查新值是否是一个纯数字
+                                                                # Check if the new value is a pure number
                                                                 if new_value.is_number:
-                                                                    # 更新节点值
+                                                                    # Update node values
                                                                     candi_node_values.append(new_value)
                                                             if len(candi_node_values) > 0:
                                                                 visual_value = (
@@ -356,7 +358,7 @@ class GraphSolver:
                                                                 knowns[unknown_var] = closest_to_number(
                                                                     candi_node_values, visual_value)
                                         except SympifyError:
-                                            # 如果解析失败或节点值不是表达式，忽略该节点
+                                            # If parsing fails or the node value is not an expression, ignore the node
                                             continue
 
                     except FunctionTimedOut as e:
@@ -393,9 +395,10 @@ class GraphSolver:
                                     pairs = [eq1.subs(knowns), eq2.subs(knowns)]
                                     logger.debug(f"Solving equations: {pairs}")
                                     sol = func_timeout(10, solve, kwargs=dict(f=pairs, dict=True))
-                                    sol = [s for s in sol if 0 not in s.values()]  # 暂时不考虑值为0的解
+                                    # Temporarily not considering solutions with a value of 0
+                                    sol = [s for s in sol if 0 not in s.values()]
                                     if len(sol) > 0:
-                                        sol = max(sol, key=estimate)  # TODO 这里也许需要修改，因为通过与视觉值比较后选出最相近的一组解更合理
+                                        sol = max(sol, key=estimate)  # TODO This may need to be modified because it is more reasonable to select the most similar set of solutions by comparing them with visual values
                                         logger.debug(f"Solution: {sol}")
                                         for var, value in sol.items():
                                             knows_added_step_2[var] = value
@@ -409,7 +412,8 @@ class GraphSolver:
                                 break
                             count += 1
 
-                        # 不管group中的方程是否能求出解，都要将group中的方程都标记为已求解，避免无限循环
+                        # Regardless of whether the equations in the group can be solved or not,
+                        # all equations in the group should be marked as solved to avoid infinite loops
                         for eq in group:
                             solved_equations.append(eq)
                             remaining_equations.remove(eq)
@@ -424,7 +428,7 @@ class GraphSolver:
                 else:
                     logger.debug("No solution found for complex equations in step 2")
 
-                # 步骤3：将所有解代入剩余方程组统一求解
+                # Step 3: Substitute all solutions into the residual equation system and solve them uniformly
                 # if len(remaining_equations) > 0:
                 #     logger.debug("Start solving complex equations in step 3")
                 #     remaining_solutions = []
@@ -470,7 +474,7 @@ class GraphSolver:
         self.print_node_value(print_new=True)
 
     def execute_actions(self, action_list):
-        """根据模型匹配的结果执行预设的动作"""
+        """Execute preset actions based on the results of model matching"""
         for action in action_list:
             action_type = action['type']
             details = action['details']
@@ -546,22 +550,22 @@ class GraphSolver:
 
         for node_id, data in self.global_graph.graph.nodes(data=True):
             node_value = data.get('value')
-            if node_value != 'None':  # 检查value是否非空
+            if node_value != 'None':  # Check if the value is not empty
                 node_var = self.symbols[str(node_id)]
                 equations = []
                 has_added = False
                 try:
                     for single_value in node_value:
-                        # 如果node_value是数字字符串或者浮点数表示的字符串
+                        # If node_value is a string of numbers or floating-point numbers
                         if isinstance(single_value, str):
-                            if isNumber(single_value):  # 判断是否为整数字符串
+                            if isNumber(single_value):  # Determine whether it is an integer string
                                 node_value_expr = sympify(single_value, evaluate=False)
                                 if not has_added:
                                     has_added = True
                                     self.known_var[node_var] = single_value
                             else:
-                                # 清理字符串并尝试解析为表达式
-                                node_value_clean = single_value.replace(" ", "")  # 去除空格
+                                # Clean up the string and attempt to parse it into an expression
+                                node_value_clean = single_value.replace(" ", "")  # Remove spaces
                                 node_value_expr = parse_expr(node_value_clean, evaluate=False)
                                 for s in self.symbols.values():
                                     if str(s) == str(node_value_expr):
@@ -569,7 +573,7 @@ class GraphSolver:
                                         break
                         else:
                             node_value_expr = sympify(single_value, evaluate=False)
-                            # 如果node_value本身就是整数或浮点数
+                            # If node_value itself is an integer or floating point number
                             if isinstance(single_value, (int, float)) and not has_added:
                                 has_added = True
                                 self.known_var[node_var] = single_value
@@ -675,8 +679,9 @@ class GraphSolver:
                 action_list.extend(actions)
                 added_equations.extend(equations)
             else:
-                # 将 candidate_models 分成 max_workers 等份
-                chunk_size = (len(candidate_models) + max_workers - 1) // max_workers  # 计算每个线程处理的模型数，向上取整
+                # Split the candidate_models into equal parts as max_workers
+                # Calculate the number of models processed by each thread, rounded up to the nearest integer
+                chunk_size = (len(candidate_models) + max_workers - 1) // max_workers
                 chunks = self.chunked_iterable(candidate_models, chunk_size)
 
                 with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:

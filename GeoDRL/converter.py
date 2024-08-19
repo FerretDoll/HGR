@@ -1,13 +1,13 @@
-from itertools import product, permutations
+from itertools import product
 
-from sympy import rad, pi, sympify, Mul, Number, Add, Integer, Float, Symbol, cos, tan, cot, sqrt, symbols, sin, \
+from sympy import pi, sympify, Mul, Number, Add, Integer, Float, Symbol, cos, tan, cot, sqrt, symbols, sin, \
     Rational, Eq
 from pyparsing import ParseResults
 
 from GeoDRL.extended_definition import ExtendedDefinition
 from GeoDRL.logic_parser import LogicParser
-from GeoDRL.base_theorem import BaseTheorem
-from utils.common_utils import isNumber, hasNumber, isAlgebra, findAlgebra, sort_points, sort_angle, findNumber
+from reasoner.base_theorem import BaseTheorem
+from utils.common_utils import isNumber, hasNumber, isAlgebra, sort_points, sort_angle, findNumber
 
 from kanren import run, var
 
