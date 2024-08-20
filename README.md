@@ -37,7 +37,7 @@ make vf3.dll
 ```
 
 ## Prepare the Dataset
-First, download the Geometry3K dataset from [Paper With Code](https://paperswithcode.com/). Save `train.zip`, `val.zip`, `test.zip` and `logic_forms.zip` into `db` folder. Then, unzip data files:
+First, download the Geometry3K dataset from [Google Drive](https://drive.google.com/drive/folders/1d05WYXtlgKIoaPpK1v94LYph_heiXM7Z). Save `train.zip`, `val.zip`, `test.zip` and `logic_forms.zip` into `db` folder. Then, unzip data files:
 
 ```bash
 sh unzip_data.sh
