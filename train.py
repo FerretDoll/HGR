@@ -11,9 +11,8 @@ import time
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.multiprocessing as mp
 
-from pebble import ProcessPool
-from concurrent.futures import TimeoutError
 from func_timeout import func_timeout, FunctionTimedOut
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import trange
@@ -103,31 +102,31 @@ class ReplayMemory(object):
 memory = ReplayMemory(10000)
 
 
+def theorem_pred(graph_solver, model):
+    global map_dict
+    graph_data = graph_solver.global_graph.to_dict()
+    graph_data, map_dict = reparse_graph_data(graph_data, map_dict)
+
+    single_test_data = __preprocess_item(item=graph_data, node_type_vocab=node_type_vocab,
+                                         node_attr_vocab=node_attr_vocab, edge_attr_vocab=edge_attr_vocab,
+                                         spatial_pos_max=1)
+    for k, v in single_test_data.items():
+        single_test_data[k] = v.unsqueeze(0).cuda()
+    output_logits = model(single_test_data)
+    score = torch.softmax(output_logits, dim=-1).squeeze(0)
+    sorted_score = torch.sort(score, descending=True)
+    sorted_score_dict = {k.cpu().item(): v.cpu().item() for k, v in zip(sorted_score[1], sorted_score[0])}
+    return sorted_score_dict
+
+
 def beam_search_for_RL(graph_solver, model, max_step, beam_size, eps):
-    def theorem_pred(graph_solver, model):
-        global map_dict
-        graph_data = graph_solver.global_graph.to_dict()
-        graph_data, map_dict = reparse_graph_data(graph_data, map_dict)
-
-        single_test_data = __preprocess_item(item=graph_data, node_type_vocab=node_type_vocab,
-                                             node_attr_vocab=node_attr_vocab, edge_attr_vocab=edge_attr_vocab,
-                                             spatial_pos_max=1)
-        for k, v in single_test_data.items():
-            single_test_data[k] = v.unsqueeze(0).cuda()
-        output_logits = model(single_test_data)
-        # print(f"output_logits: {output_logits}")
-        score = torch.softmax(output_logits, dim=-1).squeeze(0)
-        sorted_score = torch.sort(score, descending=True)
-        sorted_score_dict = {k.cpu().item(): v.cpu().item() for k, v in zip(sorted_score[1], sorted_score[0])}
-        return sorted_score_dict
-
     tmp_memory = []
 
     t = 0
     hypotheses = [graph_solver]
     hyp_steps = [[]]
     hyp_scores = [0.]
-    used_theorems = []  # Save all theorems used
+    used_theorems = []  # 用于保存使用的所有定理
 
     while t < max_step and len(hypotheses) > 0:
         t += 1
@@ -152,7 +151,6 @@ def beam_search_for_RL(graph_solver, model, max_step, beam_size, eps):
 
         conti_hyp_scores = torch.Tensor(conti_hyp_scores)
         top_cand_hyp_scores, top_cand_hyp_pos = torch.topk(conti_hyp_scores, k=min(beam_size, conti_hyp_scores.size(0)))
-
         new_hypotheses = []
         new_hyp_scores = []
         new_hyp_steps = []
@@ -160,7 +158,7 @@ def beam_search_for_RL(graph_solver, model, max_step, beam_size, eps):
         for cand_hyp_id, cand_hyp_score in zip(top_cand_hyp_pos, top_cand_hyp_scores):
             new_score = cand_hyp_score.detach().item()
             prev_hyp, theorem = hyp_theorem[cand_hyp_id]
-            used_theorems.append(theorem)  # Record the theorem currently in use
+            used_theorems.append(theorem)
             now_steps = conti_hyp_steps[cand_hyp_id]
 
             state = generate_state(prev_hyp)
@@ -181,13 +179,11 @@ def beam_search_for_RL(graph_solver, model, max_step, beam_size, eps):
                 continue
             next_state = generate_state(now_hyp)
             reward = - (1 - math.exp(-1. * time_cost / 60.0))
-            if len(now_hyp.target_node_values) > 0:
-                answer = now_hyp.replace_and_evaluate(now_hyp.global_graph.target_equation)
-                if answer is not None:
-                    reward += 1.0
-                    # print(f"reward: {reward}")
-                    tmp_memory.append((state, theorem, None, reward))
-                    return answer, used_theorems, tmp_memory
+            if now_hyp.answer is not None:
+                reward += 1.0
+                # print(f"reward: {reward}")
+                tmp_memory.append((state, theorem, None, reward))
+                return now_hyp.answer, used_theorems, tmp_memory
             else:
                 # print(f"reward: {reward}")
                 tmp_memory.append((state, theorem, next_state, reward))
@@ -312,44 +308,38 @@ def generate_state(graph_solver):
 
 
 def solve_with_question(q_id, model, max_steps=10, eps=0.1):
-    # print(f"solve_with_question: {q_id}")
-
     try:
         graph_solver, target = get_graph_solver(q_id)
         graph_solver.init_solve()
 
-        if len(graph_solver.target_node_values) > 0:
-            answer = graph_solver.answer
-            return answer, [], []
+        if graph_solver.answer is not None:
+            return graph_solver.answer, [], []
 
-        now_answer, model_id_seq, tmp_memory = beam_search_for_RL(graph_solver, model, max_steps, args.beam_size,
-                                                                  eps)
+        now_answer, model_id_seq, tmp_memory = beam_search_for_RL(graph_solver, model, max_steps, args.beam_size, eps)
         return now_answer, model_id_seq, tmp_memory
     except Exception as e:
         train_logger.error(f"Solving question error for q_id {q_id}: {e}")
-        gc.collect()
         return None, [], []
+    finally:
+        gc.collect()
 
 
 def solve_with_timeout(q_id, model, timeout=120):
-    with ProcessPool(max_workers=1) as pool:
-        future = pool.schedule(solve_with_question, args=(q_id, model,), timeout=timeout)
+    with mp.Pool(processes=1) as pool:
+        result = pool.apply_async(solve_with_question, args=(q_id, model))
+
         try:
-            res = future.result()  # Get the execution result and throw TimeoutError if timeout occurs
-            answer, model_id_seq, tmp_memory = res
-
+            # 设置超时时间
+            answer, model_id_seq, tmp_memory = result.get(timeout=timeout)
             return answer, model_id_seq, tmp_memory
-
-        except TimeoutError:
+        except mp.TimeoutError:
             train_logger.error(f'Solving question error for q_id {q_id} - Timeout')
             return None, [], []
-
         except Exception as e:
             train_logger.error(f'Solving question error for q_id {q_id} - Error: {e}')
             return None, [], []
-
         finally:
-            gc.collect()
+            gc.collect()  # 确保资源回收
 
 
 def solve_with_question_random(q_id, max_steps=10):
@@ -385,11 +375,11 @@ def solve_with_question_model_sequence(q_id):
         return None, []
 
 
-def optimize_model(policy_net, optimizer):
+def optimize_model(model, optimizer):
     try:
         if len(memory) < BATCH_SIZE:
             return
-        policy_net.train()
+        model.train()
         transitions = memory.sample(BATCH_SIZE)
         batch = Transition(*zip(*transitions))
         state_batch = {}
@@ -435,22 +425,22 @@ def optimize_model(policy_net, optimizer):
         # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
         # columns of actions taken. These are the actions which would've been taken
         # for each batch state according to policy_net
-        state_action_values = policy_net(state_batch).gather(1, action_batch)
+        state_action_values = model(state_batch).gather(1, action_batch)
         # print(state_action_values)
         # Compute V(s_{t+1}) for all next states.
         next_state_values = torch.zeros(BATCH_SIZE).cuda()
         with torch.no_grad():
-            output_logits = policy_net(non_final_next_states)
+            output_logits = model(non_final_next_states)
             # print(f"output_logits: {output_logits}")
             next_state_values[non_final_mask] = output_logits.max(1)[0]
 
         # scorelists = []
         # for output_logit in output_logits:
-        #     score = torch.softmax(output_logit, dim=-1).squeeze(0)  # 对每个 output_logit 进行 softmax
-        #     sorted_score = torch.sort(score, descending=True)  # 按照得分从高到低排序
-        #     sorted_score_dict = {k.cpu().item(): v.cpu().item() for k, v in zip(sorted_score[1], sorted_score[0])}  # 将排序后的得分和对应的索引转换为字典
+        #     score = torch.softmax(output_logit, dim=-1).squeeze(0)
+        #     sorted_score = torch.sort(score, descending=True)
+        #     sorted_score_dict = {k.cpu().item(): v.cpu().item() for k, v in zip(sorted_score[1], sorted_score[0])}
         #     scorelists.append(sorted_score_dict)
-        # # 打印所有 scorelists
+
         # for i, scorelist in enumerate(scorelists):
         #     print(f"Scorelist for output_logits[{i}]: {scorelist}")
 
@@ -466,14 +456,14 @@ def optimize_model(policy_net, optimizer):
         optimizer.zero_grad()
         loss.backward()
         # In-place gradient clipping
-        nn.utils.clip_grad_norm_(policy_net.parameters(), 1, norm_type=2)
+        nn.utils.clip_grad_norm_(model.parameters(), 1, norm_type=2)
         optimizer.step()
         global model_update_steps
         model_update_steps += 1
         writer.add_scalar('train_loss', loss.item(), global_step=model_update_steps)
 
         if model_update_steps % 50 == 0:
-            torch.save(policy_net.state_dict(), output_path + "/graph_model_RL_step" + str(model_update_steps) + ".pt")
+            torch.save(model.state_dict(), output_path + "/graph_model_RL_step" + str(model_update_steps) + ".pt")
             torch.cuda.empty_cache()
 
     except Exception as e:
@@ -547,10 +537,11 @@ def pre_store_data_processed():
         gc.collect()
 
 
-def train_loop(policy_net, optimizer):
+def train_loop(model, optimizer):
     max_steps = 50000
     total_steps = 0
-
+    save_interval = 100
+    count = 0
     global model_update_steps
     while model_update_steps < max_steps and total_steps < max_steps:
         total_steps += 1
@@ -566,20 +557,26 @@ def train_loop(policy_net, optimizer):
             try:
                 solve_start_time = time.time()
 
-                answer, model_id_seq, tmp_memory = solve_with_timeout(q_id, policy_net, timeout=120)
+                answer, model_id_seq, tmp_memory = solve_with_timeout(q_id, model, timeout=60)
 
                 solve_end_time = time.time()
                 solve_duration = solve_end_time - solve_start_time
                 for _ in tmp_memory:
                     memory.push(*_)
+                if len(tmp_memory) > 0:
+                    count += 1
+                if count >= save_interval:
+                    pkl.dump(memory, open("Memory.pkl", 'wb'))
+                    count = 0
 
             except Exception as e:
                 train_logger.error(f'step: {model_update_steps}, q_id: {q_id} - Error: {e}')
                 gc.collect()
                 continue
             # print(f"memory: {len(memory)}")
+
             optimize_start_time = time.time()
-            optimize_model(policy_net, optimizer)
+            optimize_model(model, optimizer)
             optimize_end_time = time.time()
             optimize_duration = optimize_end_time - optimize_start_time
             train_logger.info(
@@ -587,11 +584,11 @@ def train_loop(policy_net, optimizer):
             gc.collect()
 
 
-def pretrain_loop(policy_net, optimizer):
+def pretrain_loop(model, optimizer):
     max_steps = 5000
     for _ in trange(0, max_steps):
         optimize_start_time = time.time()
-        optimize_model(policy_net, optimizer)
+        optimize_model(model, optimizer)
         optimize_end_time = time.time()
         optimize_duration = optimize_end_time - optimize_start_time
         train_logger.info(f'step: {model_update_steps} - optimizing time: {optimize_duration:.4f} seconds')
@@ -603,8 +600,9 @@ if __name__ == "__main__":
                            num_node_attr=len(node_attr_vocab), num_in_degree=256, num_out_degree=256,
                            num_edges=len(edge_attr_vocab), num_spatial=20, num_edge_dis=256, edge_type="one_hop",
                            multi_hop_max_dist=1)
-    policy_net = GraphormerEncoder(model_args).cuda()
+    policy_net = GraphormerEncoder(model_args).cuda().share_memory()
     INIT_MODEL = None
+    # INIT_MODEL = os.path.join(output_path, "graph_model_RL_step" + str(10500) + ".pt")
     if INIT_MODEL:
         match = re.search(r'step(\d+)', INIT_MODEL)
         if match:
@@ -629,11 +627,11 @@ if __name__ == "__main__":
     if args.init_memory:
         pre_store_data()
         pre_store_data_processed()
+
+    if args.pre_train:
+        pretrain_loop(policy_net, optimizer)
     else:
-        if args.pre_train:
-            pretrain_loop(policy_net, optimizer)
-        else:
-            train_loop(policy_net, optimizer)
+        train_loop(policy_net, optimizer)
 
     # solve_with_question(4)
     # solve_with_question_random(4)

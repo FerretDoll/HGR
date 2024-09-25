@@ -218,7 +218,7 @@ def eval(st, ed):
         try:
             q_id = str(q_id)
             if q_id not in diagram_logic_forms_json or q_id not in text_logic_forms_json or q_id in error_ids:
-                eval_logger.debug(f'step: {model_update_steps}, q_id: {q_id} - q_id in error_ids')
+                eval_logger.debug(f'q_id: {q_id} - q_id in error_ids')
                 continue
             res = func_timeout(120, solve, kwargs=dict(q_id=q_id, model=model, max_step=10, beam_size=5))
             eval_logger.debug(res)

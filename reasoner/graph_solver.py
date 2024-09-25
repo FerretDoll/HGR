@@ -584,11 +584,16 @@ class GraphSolver:
 
         init_equations = [item for sublist in list(self.node_value_equations_dict.values()) for item in sublist]
         init_equations.extend(self.global_graph.equations)
-        init_solutions = func_timeout(20, solve, kwargs=dict(f=init_equations, dict=True))
-        estimate = lambda sol: sum([str(expr)[0] != '-' for expr in sol.values()])  # negative value
-        self.init_solutions = max(init_solutions, key=estimate)
-        self.update_graph_node_values(self.init_solutions)
-        self.target_node_values = self.check_and_evaluate_targets()
+        try:
+            init_solutions = func_timeout(20, solve, kwargs=dict(f=init_equations, dict=True))
+            estimate = lambda sol: sum([str(expr)[0] != '-' for expr in sol.values()])  # negative value
+            self.init_solutions = max(init_solutions, key=estimate)
+            self.update_graph_node_values(self.init_solutions)
+            self.target_node_values = self.check_and_evaluate_targets()
+            if len(self.target_node_values) > 0:
+                self.answer = self.replace_and_evaluate(self.global_graph.target_equation)
+        except FunctionTimedOut:
+            logger.error("Timeout when init solving.")
 
     def solve_with_one_model(self, model):
         self.is_updated = False
@@ -616,6 +621,8 @@ class GraphSolver:
             self.solve_equations()
 
             self.target_node_values = self.check_and_evaluate_targets()
+            if len(self.target_node_values) > 0:
+                self.answer = self.replace_and_evaluate(self.global_graph.target_equation)
 
     def solve_with_model_sequence(self, model_sequence):
         self.init_solve()
