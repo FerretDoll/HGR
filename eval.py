@@ -42,7 +42,6 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--use_annotated", action="store_true", help="use annotated data or generated data")
 parser.add_argument("--use_agent", action="store_true", help="use model selection agent")
 parser.add_argument("--model_path", type=str, help="model weight path")
-parser.add_argument("--output_path", type=str, help="output path of result json file")
 parser.add_argument("--beam_size", type=int, default=5, help="beam size for search")
 parser.add_argument('--question_id', type=int, help='The id of the question to solve')
 args = parser.parse_args()
@@ -125,13 +124,12 @@ def beam_search(graph_solver, model, max_step, beam_size):
                     continue
             except:
                 continue
-            if len(now_hyp.target_node_values) > 0:
-                answer = now_hyp.replace_and_evaluate(now_hyp.global_graph.target_equation)
-                if answer is not None:
-                    beam_search_res["answer"] = answer
-                    beam_search_res["step_lst"] = now_steps
-                    beam_search_res["model_instance_eq_num"] = now_hyp.model_instance_eq_num
-                    return beam_search_res
+
+            if now_hyp.answer is not None:
+                beam_search_res["answer"] = now_hyp.answer
+                beam_search_res["step_lst"] = now_steps
+                beam_search_res["model_instance_eq_num"] = now_hyp.model_instance_eq_num
+                return beam_search_res
 
             new_hypotheses.append(now_hyp)
             new_hyp_scores.append(new_score)
@@ -189,9 +187,7 @@ def solve(q_id, model, max_step=10, beam_size=5):
                 res['time'] = str(time.time() - s_time)
                 return res
 
-        beam_search_res = func_timeout(120, beam_search,
-                                       kwargs=dict(graph_solver=graph_solver, model=model, max_step=max_step,
-                                                   beam_size=beam_size))
+        beam_search_res = beam_search(graph_solver=graph_solver, model=model, max_step=max_step,beam_size=beam_size)
         answer = beam_search_res["answer"]
         res["step_lst"] = beam_search_res["step_lst"]
         res["model_instance_eq_num"] = beam_search_res["model_instance_eq_num"]

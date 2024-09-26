@@ -126,7 +126,7 @@ def beam_search_for_RL(graph_solver, model, max_step, beam_size, eps):
     hypotheses = [graph_solver]
     hyp_steps = [[]]
     hyp_scores = [0.]
-    used_theorems = []  # 用于保存使用的所有定理
+    conti_hyp_steps = []
 
     while t < max_step and len(hypotheses) > 0:
         t += 1
@@ -158,7 +158,6 @@ def beam_search_for_RL(graph_solver, model, max_step, beam_size, eps):
         for cand_hyp_id, cand_hyp_score in zip(top_cand_hyp_pos, top_cand_hyp_scores):
             new_score = cand_hyp_score.detach().item()
             prev_hyp, theorem = hyp_theorem[cand_hyp_id]
-            used_theorems.append(theorem)
             now_steps = conti_hyp_steps[cand_hyp_id]
 
             state = generate_state(prev_hyp)
@@ -183,7 +182,7 @@ def beam_search_for_RL(graph_solver, model, max_step, beam_size, eps):
                 reward += 1.0
                 # print(f"reward: {reward}")
                 tmp_memory.append((state, theorem, None, reward))
-                return now_hyp.answer, used_theorems, tmp_memory
+                return now_hyp.answer, now_steps, tmp_memory
             else:
                 # print(f"reward: {reward}")
                 tmp_memory.append((state, theorem, next_state, reward))
@@ -196,7 +195,7 @@ def beam_search_for_RL(graph_solver, model, max_step, beam_size, eps):
         hyp_scores = new_hyp_scores
         hyp_steps = new_hyp_steps
 
-    return None, used_theorems, tmp_memory
+    return None, conti_hyp_steps, tmp_memory
 
 
 def beam_search_for_RL_random(graph_solver, max_step, beam_size):
@@ -558,6 +557,7 @@ def train_loop(model, optimizer):
                 solve_start_time = time.time()
 
                 answer, model_id_seq, tmp_memory = solve_with_timeout(q_id, model, timeout=60)
+                # answer, model_id_seq, tmp_memory = solve_with_question(q_id, model)
 
                 solve_end_time = time.time()
                 solve_duration = solve_end_time - solve_start_time
@@ -602,7 +602,7 @@ if __name__ == "__main__":
                            multi_hop_max_dist=1)
     policy_net = GraphormerEncoder(model_args).cuda().share_memory()
     INIT_MODEL = None
-    # INIT_MODEL = os.path.join(output_path, "graph_model_RL_step" + str(10500) + ".pt")
+    # INIT_MODEL = os.path.join(output_path, "graph_model_RL_step" + str(15700) + ".pt")
     if INIT_MODEL:
         match = re.search(r'step(\d+)', INIT_MODEL)
         if match:
