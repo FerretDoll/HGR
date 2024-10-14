@@ -47,16 +47,16 @@ parser.add_argument('--question_id', type=int, help='The id of the question to s
 args = parser.parse_args()
 
 
-
 with open(config.error_ids_path, 'r') as file:
     error_ids = {line.strip() for line in file}
 with open(config.model_pool_path, 'r') as model_pool_file:
     model_pool, model_id_map = load_models_from_json(json.load(model_pool_file))
 
 model_save_path = args.model_path
-model = GraphormerEncoder(model_args).cuda()
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = GraphormerEncoder(model_args).to(device)
 if model_save_path:
-    model.load_state_dict(torch.load(model_save_path))
+    model.load_state_dict(torch.load(model_save_path, map_location=device))
 model.eval()
 
 
@@ -69,7 +69,7 @@ def theorem_pred(graph_solver, model):
                                          node_attr_vocab=node_attr_vocab, edge_attr_vocab=edge_attr_vocab,
                                          spatial_pos_max=1)
     for k, v in single_test_data.items():
-        single_test_data[k] = v.unsqueeze(0).cuda()
+        single_test_data[k] = v.unsqueeze(0).to(device)
     output_logits = model(single_test_data)
     score = torch.softmax(output_logits, dim=-1).squeeze(0)
     sorted_score = torch.sort(score, descending=True)
@@ -175,6 +175,7 @@ def solve(q_id, model, max_step=10, beam_size=5):
     gt_id = ord(data['answer']) - 65  # Convert A-D to 0-3
     try:
         graph_solver, target = get_graph_solver(q_id)
+        res["target"] = target
         graph_solver.init_solve()
 
         answer = graph_solver.answer
@@ -182,7 +183,6 @@ def solve(q_id, model, max_step=10, beam_size=5):
             correctness, answer = check_transformed_answer(answer, candidate_value_list, gt_id)
             if correctness:
                 res["correctness"] = "yes"
-                res["target"] = target
                 res["answer"] = answer
                 res["model_instance_eq_num"] = graph_solver.model_instance_eq_num
                 res['time'] = str(time.time() - s_time)
@@ -197,11 +197,12 @@ def solve(q_id, model, max_step=10, beam_size=5):
             correctness, answer = check_transformed_answer(answer, candidate_value_list, gt_id)
             if correctness:
                 res["correctness"] = "yes"
-                res["target"] = target
                 res["answer"] = answer
+                eval_logger.debug(res)
                 return res
-        else:
-            return res
+
+        eval_logger.debug(res)
+        return res
     except FunctionTimedOut:
         eval_logger.error(f'q_id: {q_id} - Timeout')
         return res
@@ -217,8 +218,7 @@ def eval(st, ed):
             if q_id not in diagram_logic_forms_json or q_id not in text_logic_forms_json or q_id in error_ids:
                 eval_logger.debug(f'q_id: {q_id} - q_id in error_ids')
                 continue
-            res = func_timeout(120, solve, kwargs=dict(q_id=q_id, model=model, max_step=10, beam_size=5))
-            eval_logger.debug(res)
+            func_timeout(120, solve, kwargs=dict(q_id=q_id, model=model, max_step=10, beam_size=5))
         except FunctionTimedOut:
             eval_logger.error(f'q_id: {q_id} - Timeout')
             continue
@@ -245,7 +245,8 @@ if __name__ == "__main__":
         if args.use_agent:
             solve_with_time(args.question_id, model, max_step=10, beam_size=5)
         else:
-            solve_question(args.question_id)
+            res = solve_question(args.question_id)
+            eval_logger.debug(res)
     else:
         if args.use_agent:
             eval(st=2401, ed=3002)

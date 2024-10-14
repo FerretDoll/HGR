@@ -106,7 +106,7 @@ def solve_with_model_sequence(q_id, model_id_list):
 
 
 def solve_question(q_id):
-    res = {"id": q_id, "target": None, "answer": None, "step_lst": None, "model_instance_eq_num": None,
+    res = {"id": str(q_id), "target": None, "answer": None, "step_lst": None, "model_instance_eq_num": None,
            "correctness": "no", "time": None}
     s_time = time.time()
     try:

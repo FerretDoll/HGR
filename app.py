@@ -53,10 +53,11 @@ with open(config.error_ids_path, 'r') as file:
 with open(config.model_pool_path, 'r') as model_pool_file:
     model_pool, model_id_map = load_models_from_json(json.load(model_pool_file))
 
-model_save_path = 'saves/RL/graph_model_RL_step22200.pt'
-model = GraphormerEncoder(model_args).cuda()
+model_save_path = ''
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = GraphormerEncoder(model_args).to(device)
 if model_save_path:
-    model.load_state_dict(torch.load(model_save_path))
+    model.load_state_dict(torch.load(model_save_path, map_location=device))
 model.eval()
 
 def theorem_pred(graph_solver, model):
@@ -68,7 +69,7 @@ def theorem_pred(graph_solver, model):
                                          node_attr_vocab=node_attr_vocab, edge_attr_vocab=edge_attr_vocab,
                                          spatial_pos_max=1)
     for k, v in single_test_data.items():
-        single_test_data[k] = v.unsqueeze(0).cuda()
+        single_test_data[k] = v.unsqueeze(0).to(device)
     output_logits = model(single_test_data)
     score = torch.softmax(output_logits, dim=-1).squeeze(0)
     sorted_score = torch.sort(score, descending=True)
@@ -250,7 +251,6 @@ if st.sidebar.button("Solve"):
             st.markdown(d)
 
         res = solve_with_time(index, model, max_step=10, beam_size=5)
-        print(res)
         answer = res["answer"]
         step_lst = res["step_lst"]
 
