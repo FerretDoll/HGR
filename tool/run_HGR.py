@@ -21,7 +21,7 @@ from reasoner.graph_matching import load_models_from_json, get_candidate_models_
 from reasoner.hologram import GlobalHologram
 from reasoner.graph_solver import GraphSolver
 from reasoner.utils import dict_to_gml, draw_graph_from_gml, is_debugging
-from reasoner.config import logger, eval_logger
+from reasoner.config import logger, model_pool_path
 from reasoner import config
 
 
@@ -29,9 +29,7 @@ with open(config.diagram_logic_forms_json_path, 'r') as diagram_file:
     diagram_logic_forms_json = json.load(diagram_file)
 with open(config.text_logic_forms_json_path, 'r') as text_file:
     text_logic_forms_json = json.load(text_file)
-
-
-with open(config.model_pool_path, 'r') as model_pool_file:
+with open(model_pool_path, 'r') as model_pool_file:
     model_pool, model_id_map = load_models_from_json(json.load(model_pool_file))
 
 
@@ -60,7 +58,7 @@ def get_graph_solver(q_id):
     logic_forms = get_logic_forms(q_id)
     parser, target = Text2Logic(logic_forms)
     global_graph = get_global_graph(parser, target)
-    graph_solver = GraphSolver(global_graph, model_pool)
+    graph_solver = GraphSolver(global_graph)
 
     return graph_solver, target
 

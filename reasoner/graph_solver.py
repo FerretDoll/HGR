@@ -1,4 +1,5 @@
 import concurrent.futures
+import json
 from itertools import combinations, islice
 
 from func_timeout import func_timeout, FunctionTimedOut
@@ -6,20 +7,22 @@ from sympy import symbols, Eq, sympify, cos, sin, pi, solve, tan, parse_expr, Mu
     SympifyError, Symbol, cot, sec, csc, simplify
 
 from reasoner.graph_matching import get_candidate_models_from_pool, match_graphs, apply_mapping_to_actions, \
-    apply_mapping_to_equations
-from reasoner.config import UPPER_BOUND, logger, max_workers
+    apply_mapping_to_equations, load_models_from_json
+from reasoner.config import UPPER_BOUND, logger, max_workers, model_pool_path
 from reasoner.utils import is_debugging
 from utils.common_utils import isNumber, closest_to_number
 
+with open(model_pool_path, 'r') as model_pool_file:
+    model_pool, model_id_map = load_models_from_json(json.load(model_pool_file))
+
 
 class GraphSolver:
-    def __init__(self, global_graph, model_pool):
+    def __init__(self, global_graph):
         self.rounds = 0
         self.target_node_values = []
         self.answer = None
         self.model_instance_eq_num = [0, 0, 0]
         self.global_graph = global_graph
-        self.model_pool = model_pool
         self.equations = []
         self.model_equations = []
         self.node_value_equations_dict = {}
@@ -32,6 +35,7 @@ class GraphSolver:
         self.upper_bound = UPPER_BOUND
         self.symbols = {node_id: symbols(str(node_id), positive=True) for node_id in global_graph.graph.nodes()}
         self.current_new = set()
+        self.reasoning_record = []
 
     @staticmethod
     def is_pure_radian(expr):
@@ -398,7 +402,8 @@ class GraphSolver:
                                     # Temporarily not considering solutions with a value of 0
                                     sol = [s for s in sol if 0 not in s.values()]
                                     if len(sol) > 0:
-                                        sol = max(sol, key=estimate)  # TODO This may need to be modified because it is more reasonable to select the most similar set of solutions by comparing them with visual values
+                                        sol = max(sol,
+                                                  key=estimate)  # TODO This may need to be modified because it is more reasonable to select the most similar set of solutions by comparing them with visual values
                                         logger.debug(f"Solution: {sol}")
                                         for var, value in sol.items():
                                             knows_added_step_2[var] = value
@@ -507,6 +512,7 @@ class GraphSolver:
         new_actions = []
         new_equations = []
         model_used = False
+        instances = []
         try:
             mapping_dict_list = func_timeout(10, match_graphs, args=(model, self.global_graph, self.symbols,
                                                                      self.init_solutions))
@@ -521,10 +527,19 @@ class GraphSolver:
                     model_used = True
                 self.matched_relations.append(relation)
                 logger.debug(relation)
+                instance_info = {'relation': relation, 'actions': [], 'equations': []}
                 if len(model.actions) > 0:
-                    new_actions.extend(apply_mapping_to_actions(model, mapping_dict))
+                    mapped_actions = apply_mapping_to_actions(model, mapping_dict)
+                    new_actions.extend(mapped_actions)
+                    instance_info['actions'] = mapped_actions
                 if len(model.equations) > 0:
-                    new_equations.extend(apply_mapping_to_equations(model, mapping_dict, self.symbols))
+                    mapped_equations = apply_mapping_to_equations(model, mapping_dict, self.symbols)
+                    new_equations.extend(mapped_equations)
+                    instance_info['equations'] = mapped_equations
+                if len(model.actions) > 0 or len(model.equations) > 0:
+                    instances.append(instance_info)
+
+        self.reasoning_record.append({'model_name': model.model_name, 'instances': instances})
 
         return new_actions, new_equations
 
@@ -639,7 +654,7 @@ class GraphSolver:
             logger.debug(f"Round {self.rounds}")
             self.is_updated = False
 
-            candidate_models = get_candidate_models_from_pool(self.model_pool, self.global_graph)
+            candidate_models = get_candidate_models_from_pool(model_pool, self.global_graph)
             for model in candidate_models:
                 logger.debug(f"Start matching model: {model.model_name}")
                 actions, equations = self.process_one_model(model)
@@ -680,7 +695,7 @@ class GraphSolver:
             action_list = []
             added_equations = []
 
-            candidate_models = get_candidate_models_from_pool(self.model_pool, self.global_graph)
+            candidate_models = get_candidate_models_from_pool(model_pool, self.global_graph)
             if is_debugging():
                 actions, equations = self.process_model_chunk(candidate_models)
                 action_list.extend(actions)

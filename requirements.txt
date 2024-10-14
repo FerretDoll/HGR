@@ -11,3 +11,5 @@ cython
 tensorboard
 torch
 Cython
+pillow
+streamlit

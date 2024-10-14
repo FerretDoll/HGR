@@ -14,7 +14,6 @@ import torch
 from torch.nn.utils.rnn import pad_sequence
 
 
-
 def pad_attn_bias_unsqueeze(x, padlen):
     xlen = x.size(0)
     if xlen < padlen:

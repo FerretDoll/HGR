@@ -1,3 +1,5 @@
+import json
+import streamlit as st
 import time
 import os
 import json
@@ -6,21 +8,23 @@ from tqdm import trange
 import copy
 import numpy as np
 import torch
+import random
 
 from func_timeout import func_timeout, FunctionTimedOut
+from PIL import Image
 
 from agent.graph_dataset import __preprocess_item
 from agent.model.graphtransformer.model import GraphormerEncoder
 from agent.model.graphtransformer.model_args import ModelArgs
 from agent.gen_vocab import reparse_graph_data
 
-import random
-
 from reasoner import graph_solver, config
 from reasoner.config import logger, eval_logger
 from reasoner.graph_matching import load_models_from_json, get_model
 from tool.run_HGR import get_graph_solver, solve_question, check_transformed_answer, evaluate_all_questions
 
+
+DEBUG = False
 random.seed(0)
 
 EPSILON = 1e-5
@@ -34,31 +38,26 @@ node_type_vocab = {line.strip(): i for i, line in enumerate(open(node_type_vocab
 node_attr_vocab = {line.strip(): i for i, line in enumerate(open(node_attr_vocab_file, 'r').readlines())}
 edge_attr_vocab = {line.strip(): i for i, line in enumerate(open(edge_attr_vocab_file, 'r').readlines())}
 
+with open(config.diagram_logic_forms_json_path, 'r') as diagram_file:
+    diagram_logic_forms_json = json.load(diagram_file)
+with open(config.text_logic_forms_json_path, 'r') as text_file:
+    text_logic_forms_json = json.load(text_file)
+
 model_args = ModelArgs(num_classes=64, max_nodes=256, num_node_type=len(node_type_vocab),
                        num_node_attr=len(node_attr_vocab), num_in_degree=256, num_out_degree=256,
                        num_edges=len(edge_attr_vocab), num_spatial=20, num_edge_dis=256, edge_type="one_hop",
                        multi_hop_max_dist=1)
-parser = argparse.ArgumentParser()
-parser.add_argument("--use_annotated", action="store_true", help="use annotated data or generated data")
-parser.add_argument("--use_agent", action="store_true", help="use model selection agent")
-parser.add_argument("--model_path", type=str, help="model weight path")
-parser.add_argument("--beam_size", type=int, default=5, help="beam size for search")
-parser.add_argument('--question_id', type=int, help='The id of the question to solve')
-args = parser.parse_args()
-
-
 
 with open(config.error_ids_path, 'r') as file:
     error_ids = {line.strip() for line in file}
 with open(config.model_pool_path, 'r') as model_pool_file:
     model_pool, model_id_map = load_models_from_json(json.load(model_pool_file))
 
-model_save_path = args.model_path
+model_save_path = 'saves/RL/graph_model_RL_step22200.pt'
 model = GraphormerEncoder(model_args).cuda()
 if model_save_path:
     model.load_state_dict(torch.load(model_save_path))
 model.eval()
-
 
 def theorem_pred(graph_solver, model):
     global map_dict
@@ -128,7 +127,7 @@ def beam_search(graph_solver, model, max_step, beam_size):
 
             if now_hyp.answer is not None:
                 beam_search_res["answer"] = now_hyp.answer
-                beam_search_res["step_lst"] = now_steps
+                beam_search_res["step_lst"] = now_hyp.reasoning_record
                 beam_search_res["model_instance_eq_num"] = now_hyp.model_instance_eq_num
                 return beam_search_res
 
@@ -209,46 +208,83 @@ def solve(q_id, model, max_step=10, beam_size=5):
         eval_logger.error(f'q_id: {q_id} - Error: {e}')
         return res
 
+st.title('Problem Solving')
 
-def eval(st, ed):
-    for q_id in trange(st, ed):
-        try:
-            q_id = str(q_id)
-            if q_id not in diagram_logic_forms_json or q_id not in text_logic_forms_json or q_id in error_ids:
-                eval_logger.debug(f'q_id: {q_id} - q_id in error_ids')
-                continue
-            res = func_timeout(120, solve, kwargs=dict(q_id=q_id, model=model, max_step=10, beam_size=5))
-            eval_logger.debug(res)
-        except FunctionTimedOut:
-            eval_logger.error(f'q_id: {q_id} - Timeout')
-            continue
-        except Exception as e:
-            eval_logger.error(f'q_id: {q_id} - Error: {e}')
-            continue
+index = st.sidebar.text_input(label='Problem ID')
 
+if st.sidebar.button("Preview"):
+    if index is not None:
+        data = json.load(open("db/Geometry3K/" + str(index) + "/data.json"))
+        st.sidebar.markdown(data['annotat_text'])
+        choices = data['choices']
+        choices_map = ['A', 'B', 'C', 'D']
+        for i in range(len(choices)):
+            st.sidebar.markdown(choices_map[i] + ". $" + choices[i] + "$")
+        img_path = "db/Geometry3K/" + str(index) + "/img_diagram.png"
+        image = Image.open(img_path)
+        st.sidebar.image(image)
 
-if __name__ == "__main__":
-    torch.multiprocessing.set_start_method('spawn')
-    if args.use_annotated:
-        print("Use annotated: True")
-        with open(config.diagram_logic_forms_json_path, 'r') as diagram_file:
-            diagram_logic_forms_json = json.load(diagram_file)
-        with open(config.text_logic_forms_json_path, 'r') as text_file:
-            text_logic_forms_json = json.load(text_file)
-    else:
-        print("Use annotated: False")
-        with open(config.pred_diagram_logic_forms_json_path, 'r') as diagram_file:
-            diagram_logic_forms_json = json.load(diagram_file)
-        with open(config.pred_text_logic_forms_json_path, 'r') as text_file:
-            text_logic_forms_json = json.load(text_file)
-    if args.question_id:
-        if args.use_agent:
-            solve_with_time(args.question_id, model, max_step=10, beam_size=5)
-        else:
-            solve_question(args.question_id)
-    else:
-        if args.use_agent:
-            eval(st=2401, ed=3002)
-        else:
-            evaluate_all_questions(st=2401, ed=3002)
+if st.sidebar.button("Solve"):
+    if index is not None:
 
+        data = json.load(open("db/Geometry3K/" + str(index) + "/data.json"))
+        logic_form = json.load(open("db/Geometry3K/" + str(index) + "/logic_form.json"))
+        text_logic_forms = logic_form["text_logic_form"]
+        diagram_logic_forms = logic_form['diagram_logic_form']
+        st.sidebar.markdown(data['annotat_text'])
+        choices = data['choices']
+        choices_map = ['A', 'B', 'C', 'D']
+        for i in range(len(choices)):
+            st.sidebar.markdown(choices_map[i] + ". $" + choices[i] + "$")
+        img_path = "db/Geometry3K/" + str(index) + "/img_diagram_point.png"
+        image = Image.open(img_path)
+        st.sidebar.image(image)
+
+        if len(text_logic_forms) > 1:
+            st.subheader('Text Relations')
+            for t in text_logic_forms[:-1]:
+                st.markdown(t)
+
+        st.subheader('Diagram Relations')
+        for d in diagram_logic_forms:
+            st.markdown(d)
+
+        res = solve_with_time(index, model, max_step=10, beam_size=5)
+        print(res)
+        answer = res["answer"]
+        step_lst = res["step_lst"]
+
+        st.subheader('Target')
+        st.markdown(res["target"])
+
+        st.subheader('Solving Procedure')
+        for i in range(len(step_lst)):
+            step = step_lst[i]
+            with st.expander('Step ' + str(i + 1) + ': ' + step["model_name"]):
+                instances = step["instances"]
+                for instance in instances:
+                    relation = instance["relation"]
+                    st.markdown(f"**{relation}**")
+                    if len(instance["actions"]) > 0:
+                        st.markdown('Actions:')
+                        for action in instance["actions"]:
+                            st.markdown(action)
+                    if len(instance["equations"]) > 0:
+                        st.markdown('Equations:')
+                        for e in instance["equations"]:
+                            st.markdown(e)
+                # st.markdown('**Equations:**')
+                # for e in equations_list[i]:
+                #     st.text(e + " = 0")
+                # st.markdown('**Solutions:**')
+                # for key, value in solutions_list[i].items():
+                #     st.text(key + " = " + value)
+
+        st.subheader('Answer')
+        st.markdown(str(res["answer"]))
+
+        if answer:
+            candi_answer = []
+            for choice in data['precise_value']:
+                candi_answer.append(abs(float(choice) - float(answer)))
+            st.markdown('Choose **' + choices_map[candi_answer.index(min(candi_answer))] + "**")
