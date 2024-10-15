@@ -91,7 +91,9 @@ def load_models_from_json(json_data):
 
 def get_model(model_pool, model_id_map, model_id):
     if model_id in model_id_map:
-        return model_pool[model_id_map[model_id]]
+        for k, v in model_id_map.items():
+            if v == model_id:
+                return model_pool[k]
     return None
 
 

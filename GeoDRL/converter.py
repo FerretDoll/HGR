@@ -1,7 +1,7 @@
 from itertools import product
 
 from sympy import pi, sympify, Mul, Number, Add, Integer, Float, Symbol, cos, tan, cot, sqrt, symbols, sin, \
-    Rational, Eq
+    Rational, Eq, oo, Interval
 from pyparsing import ParseResults
 
 from GeoDRL.extended_definition import ExtendedDefinition
@@ -375,6 +375,7 @@ def Logic2Graph(logic, target):
     node_type = []
     node_attr = []
     node_visual_attr = []
+    node_domain = []
     target_node = []
     edge_st_index = []
     edge_ed_index = []
@@ -694,6 +695,7 @@ def Logic2Graph(logic, target):
     node_type.extend(['Point' for point in points])
     node_attr.extend(['None' for point in points])
     node_visual_attr.extend(['None' for point in points])
+    node_domain.extend(['None' for point in points])
     node.extend(['line_' + ''.join(line) for line in lines])
     node_type.extend(['Line' for line in lines])
     node_attr.extend([l for l in length])
@@ -711,6 +713,7 @@ def Logic2Graph(logic, target):
     # 对所有值进行缩放
     scaled_visual_length = [length * scale_factor for length in visual_length]
     node_visual_attr.extend(scaled_visual_length)
+    node_domain.extend([Interval(0, oo, left_open=True, right_open=True) for line in lines])
     # # 确保所有有效的视觉边长和实际边长都是浮点数
     # valid_pairs = [(float(v), float(l)) for v, l in zip(visual_length, numeric_length) if l != 'None' and l is not None]
     # # 计算所有有效对的缩放比例
@@ -729,23 +732,28 @@ def Logic2Graph(logic, target):
         node_attr.append(convert_degrees_to_radians(angleMeasure))
     node_visual_attr.extend([base_theorem.calc_angle_measure(tuple(char for char in angle), is_rad=True)
                              for angle in angles])
+    node_domain.extend([Interval(0, pi, left_open=True, right_open=True) for angle in angles])
     node.extend(['arc_' + ''.join(arc) for arc in arcs])
     node_type.extend(['Arc' for arc in arcs])
     for arcMeasure in arcMeasures:
         node_attr.append(convert_degrees_to_radians(arcMeasure))
     node_visual_attr.extend(['None' for arc in arcs])
+    node_domain.extend([Interval(0, pi, left_open=True, right_open=True) for arc in arcs])
     node.extend(['circle_' + circle for circle in circles])
     node_type.extend(['Circle' for circle in circles])
     node_attr.extend(['None' for circle in circles])
     node_visual_attr.extend(['None' for circle in circles])
+    node_domain.extend([Interval(0, oo, left_open=True, right_open=True) for circle in circles])
     node.extend(['triangle_' + ''.join(tri) for tri in triangles])
     node_type.extend(['Triangle' for tri in triangles])
     node_attr.extend([a for a in triangleAreas])
     node_visual_attr.extend(['None' for tri in triangles])
+    node_domain.extend([Interval(0, oo, left_open=True, right_open=True) for tri in triangles])
     node.extend(['polygon_' + ''.join(poly) for poly in polygons])
     node_type.extend(['Polygon' for poly in polygons])
     node_attr.extend([a for a in polygonAreas])
     node_visual_attr.extend(['None' for poly in polygons])
+    node_domain.extend([Interval(0, oo, left_open=True, right_open=True) for poly in polygons])
 
     targetObj = getTargetObject(logic, target)
     if type(targetObj) != list: targetObj = [targetObj]
@@ -902,6 +910,7 @@ def Logic2Graph(logic, target):
             "node_type": node_type,
             "node_attr": new_node_attr,
             "node_visual_attr": node_visual_attr,
+            "node_domain": node_domain,
             "edge_index": edge_index,
             "edge_attr": edge_attr,
             "target_node": target_node,

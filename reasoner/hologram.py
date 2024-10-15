@@ -41,6 +41,10 @@ class Hologram:
         """Get the visual value of the node"""
         return self.graph.nodes[node_id].get('node_visual_value')
 
+    def get_node_domain(self, node_id):
+        """Get the domain of node"""
+        return self.graph.nodes[node_id].get('node_domain')
+
     def modify_node_value(self, node_id, new_value):
         """Modify the value attribute of a node"""
         if node_id in self.graph.nodes:
@@ -170,9 +174,10 @@ class GlobalHologram(Hologram):
                     'node_type' in json_data and json_data['node_type'][i] != 'None') else ''
             node_value = json_data['node_attr'][i] if 'node_attr' in json_data else {}
             node_visual_value = json_data['node_visual_attr'][i] if 'node_visual_attr' in json_data else {}
+            node_domain = json_data['node_domain'][i] if 'node_domain' in json_data else {}
             # Add nodes to the graph
             global_graph.add_node(node_name, node_type=node_type, node_value=node_value,
-                                  node_visual_value=node_visual_value)
+                                  node_visual_value=node_visual_value, node_domain=node_domain)
             id_map[i] = node_name
 
         # Maintain a collection for storing added edges, ensuring that edges in the undirected graph are not duplicated

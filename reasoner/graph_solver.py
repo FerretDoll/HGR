@@ -4,10 +4,10 @@ from itertools import combinations, islice
 
 from func_timeout import func_timeout, FunctionTimedOut
 from sympy import symbols, Eq, sympify, cos, sin, pi, solve, tan, parse_expr, Mul, Rational, N, \
-    SympifyError, Symbol, cot, sec, csc, simplify
+    SympifyError, Symbol, cot, sec, csc, simplify, Interval
 
 from reasoner.graph_matching import get_candidate_models_from_pool, match_graphs, apply_mapping_to_actions, \
-    apply_mapping_to_equations, load_models_from_json
+    apply_mapping_to_equations, load_models_from_json, replace_variables_equation
 from reasoner.config import UPPER_BOUND, logger, max_workers, model_pool_path
 from reasoner.utils import is_debugging
 from utils.common_utils import isNumber, closest_to_number
@@ -123,6 +123,17 @@ class GraphSolver:
     def chunked_iterable(iterable, size):
         it = iter(iterable)
         return iter(lambda: list(islice(it, size)), [])
+
+    def is_within_domain(self, sol):
+        for var, value in sol.items():
+            if str(var) in self.global_graph.graph.nodes:
+                if value.is_number:
+                    interval = self.global_graph.get_node_domain(str(var))
+                    if isinstance(interval, Interval):
+                        if not interval.contains(value):
+                            return False
+
+        return True
 
     def print_node_value(self, print_new=False):
         # Print updated graph node information
@@ -269,6 +280,7 @@ class GraphSolver:
         base_solutions = []
         try:
             base_solutions = func_timeout(20, solve, kwargs=dict(f=base_equations, dict=True))
+            base_solutions = [sol for sol in base_solutions if self.is_within_domain(sol)]
         except FunctionTimedOut as e:
             logger.debug(f"Failed to solve base equations within the time limit")
         except Exception as e:
@@ -321,7 +333,9 @@ class GraphSolver:
                     solved_equations.append(eq)
                     remaining_equations.remove(eq)
                     try:
-                        sol = func_timeout(20, solve, kwargs=dict(f=eq.subs(knowns), symbols=unknown_var))
+                        sol = func_timeout(20, solve, kwargs=dict(f=eq.subs(knowns), symbols=unknown_var,
+                                                                  dict=True))
+                        sol = [list(s.values())[0] for s in sol if self.is_within_domain(s)]
                         if len(sol) == 1:
                             knowns[unknown_var] = sol[0]
                         elif len(sol) > 1:
@@ -399,8 +413,7 @@ class GraphSolver:
                                     pairs = [eq1.subs(knowns), eq2.subs(knowns)]
                                     logger.debug(f"Solving equations: {pairs}")
                                     sol = func_timeout(10, solve, kwargs=dict(f=pairs, dict=True))
-                                    # Temporarily not considering solutions with a value of 0
-                                    sol = [s for s in sol if 0 not in s.values()]
+                                    sol = [s for s in sol if self.is_within_domain(s)]
                                     if len(sol) > 0:
                                         sol = max(sol,
                                                   key=estimate)  # TODO This may need to be modified because it is more reasonable to select the most similar set of solutions by comparing them with visual values
@@ -459,6 +472,7 @@ class GraphSolver:
                 try:
                     base_final_solutions = func_timeout(20, solve,
                                                         kwargs=dict(f=substituted_base_equations, dict=True))
+                    base_final_solutions = [sol for sol in base_final_solutions if self.is_within_domain(sol)]
                 except FunctionTimedOut as e:
                     logger.debug(f"Failed to solve substituted base equations within the time limit")
                 except Exception as e:
@@ -582,10 +596,7 @@ class GraphSolver:
                                 # Clean up the string and attempt to parse it into an expression
                                 node_value_clean = single_value.replace(" ", "")  # Remove spaces
                                 node_value_expr = parse_expr(node_value_clean, evaluate=False)
-                                for s in self.symbols.values():
-                                    if str(s) == str(node_value_expr):
-                                        node_value_expr = s
-                                        break
+                                node_value_expr = replace_variables_equation(node_value_expr, self.symbols)
                         else:
                             node_value_expr = sympify(single_value, evaluate=False)
                             # If node_value itself is an integer or floating point number
@@ -601,6 +612,7 @@ class GraphSolver:
         init_equations.extend(self.global_graph.equations)
         try:
             init_solutions = func_timeout(20, solve, kwargs=dict(f=init_equations, dict=True))
+            init_solutions = [sol for sol in init_solutions if self.is_within_domain(sol)]
             estimate = lambda sol: sum([str(expr)[0] != '-' for expr in sol.values()])  # negative value
             self.init_solutions = max(init_solutions, key=estimate)
             self.update_graph_node_values(self.init_solutions)

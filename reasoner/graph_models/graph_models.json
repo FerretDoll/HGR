@@ -12953,6 +12953,233 @@
     ],
     "grf_data": "9\n0 7\n1 1\n2 1\n3 1\n4 1\n5 3\n6 3\n7 3\n8 3\n0\n2\n1 0 14\n1 2 1\n2\n2 0 14\n2 3 1\n2\n3 0 14\n3 4 1\n2\n4 0 14\n4 1 1\n4\n5 2 14\n5 1 12\n5 3 12\n5 0 10\n4\n6 4 12\n6 3 14\n6 2 12\n6 0 10\n4\n7 1 14\n7 4 12\n7 2 12\n7 0 10\n4\n8 4 14\n8 3 12\n8 1 12\n8 0 10\n"
   },
+  "Quadrilateral_Anglesum_Theorem_2": {
+    "id": 64,
+    "relation": "Quadrilateral($a,$b,$c,$d)",
+    "constraints": "",
+    "visual_constraints": "angle_abc + angle_bcd + angle_bad + angle_adc = 2 * pi",
+    "actions": [],
+    "equations": [
+      "angle_abc + angle_bcd + angle_bad + angle_adc = 2 * pi"
+    ],
+    "node_types": {
+      "7": 1,
+      "1": 4,
+      "3": 4
+    },
+    "edge_types": {
+      "14": 8,
+      "1": 6,
+      "12": 8,
+      "10": 4
+    },
+    "nodes": [
+      {
+        "id": "n1",
+        "name": "polygon_abcd",
+        "type": "Polygon"
+      },
+      {
+        "id": "n2",
+        "name": "a",
+        "type": "Point"
+      },
+      {
+        "id": "n3",
+        "name": "b",
+        "type": "Point"
+      },
+      {
+        "id": "n4",
+        "name": "c",
+        "type": "Point"
+      },
+      {
+        "id": "n5",
+        "name": "d",
+        "type": "Point"
+      },
+      {
+        "id": "n6",
+        "name": "angle_abc",
+        "type": "Angle"
+      },
+      {
+        "id": "n7",
+        "name": "angle_bcd",
+        "type": "Angle"
+      },
+      {
+        "id": "n8",
+        "name": "angle_bad",
+        "type": "Angle"
+      },
+      {
+        "id": "n9",
+        "name": "angle_adc",
+        "type": "Angle"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "n5",
+        "target": "n1",
+        "type": "Vertex"
+      },
+      {
+        "id": "e2",
+        "source": "n4",
+        "target": "n1",
+        "type": "Vertex"
+      },
+      {
+        "id": "e3",
+        "source": "n3",
+        "target": "n1",
+        "type": "Vertex"
+      },
+      {
+        "id": "e4",
+        "source": "n2",
+        "target": "n1",
+        "type": "Vertex"
+      },
+      {
+        "id": "e5",
+        "source": "n5",
+        "target": "n2",
+        "type": "Connected"
+      },
+      {
+        "id": "e6",
+        "source": "n2",
+        "target": "n3",
+        "type": "Connected"
+      },
+      {
+        "id": "e7",
+        "source": "n3",
+        "target": "n4",
+        "type": "Connected"
+      },
+      {
+        "id": "e8",
+        "source": "n4",
+        "target": "n5",
+        "type": "Connected"
+      },
+      {
+        "id": "e9",
+        "source": "n9",
+        "target": "n5",
+        "type": "Vertex"
+      },
+      {
+        "id": "e10",
+        "source": "n9",
+        "target": "n4",
+        "type": "Sidepoint"
+      },
+      {
+        "id": "e11",
+        "source": "n9",
+        "target": "n2",
+        "type": "Sidepoint"
+      },
+      {
+        "id": "e12",
+        "source": "n8",
+        "target": "n2",
+        "type": "Vertex"
+      },
+      {
+        "id": "e13",
+        "source": "n8",
+        "target": "n5",
+        "type": "Sidepoint"
+      },
+      {
+        "id": "e14",
+        "source": "n8",
+        "target": "n3",
+        "type": "Sidepoint"
+      },
+      {
+        "id": "e15",
+        "source": "n7",
+        "target": "n5",
+        "type": "Sidepoint"
+      },
+      {
+        "id": "e16",
+        "source": "n7",
+        "target": "n4",
+        "type": "Vertex"
+      },
+      {
+        "id": "e17",
+        "source": "n7",
+        "target": "n3",
+        "type": "Sidepoint"
+      },
+      {
+        "id": "e18",
+        "source": "n6",
+        "target": "n3",
+        "type": "Vertex"
+      },
+      {
+        "id": "e19",
+        "source": "n6",
+        "target": "n2",
+        "type": "Sidepoint"
+      },
+      {
+        "id": "e20",
+        "source": "n6",
+        "target": "n4",
+        "type": "Sidepoint"
+      },
+      {
+        "id": "e21",
+        "source": "n8",
+        "target": "n1",
+        "type": "Interior"
+      },
+      {
+        "id": "e22",
+        "source": "n6",
+        "target": "n1",
+        "type": "Interior"
+      },
+      {
+        "id": "e23",
+        "source": "n7",
+        "target": "n1",
+        "type": "Interior"
+      },
+      {
+        "id": "e24",
+        "source": "n9",
+        "target": "n1",
+        "type": "Interior"
+      },
+      {
+        "id": "e25",
+        "source": "n2",
+        "target": "n4",
+        "type": "Connected"
+      },
+      {
+        "id": "e26",
+        "source": "n3",
+        "target": "n5",
+        "type": "Connected"
+      }
+    ],
+    "grf_data": "9\n0 7\n1 1\n2 1\n3 1\n4 1\n5 3\n6 3\n7 3\n8 3\n0\n3\n1 0 14\n1 2 1\n1 3 1\n3\n2 0 14\n2 3 1\n2 4 1\n2\n3 0 14\n3 4 1\n2\n4 0 14\n4 1 1\n4\n5 2 14\n5 1 12\n5 3 12\n5 0 10\n4\n6 4 12\n6 3 14\n6 2 12\n6 0 10\n4\n7 1 14\n7 4 12\n7 2 12\n7 0 10\n4\n8 4 14\n8 3 12\n8 1 12\n8 0 10\n"
+  },
   "Triangle_Quad_Area_Sum": {
     "id": 59,
     "relation": "Equals(AreaOf($polygon_acde),Add(AreaOf($triangle_abc),AreaOf($polygon_abde)))",
