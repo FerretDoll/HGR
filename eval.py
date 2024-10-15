@@ -195,14 +195,18 @@ def solve(q_id, model, max_step=10, beam_size=5):
         res['time'] = str(time.time() - s_time)
         if answer is not None:
             correctness, answer = check_transformed_answer(answer, candidate_value_list, gt_id)
+            res["answer"] = answer
+
             if correctness:
                 res["correctness"] = "yes"
-                res["answer"] = answer
-                eval_logger.debug(res)
-                return res
 
-        eval_logger.debug(res)
-        return res
+            eval_logger.debug(res)
+            return res
+        else:
+            eval_logger.error(f'q_id: {q_id} - Agent failed, fallback to heuristic strategy')
+            res = solve_question(args.question_id)
+            eval_logger.debug(res)
+            return res
     except FunctionTimedOut:
         eval_logger.error(f'q_id: {q_id} - Timeout')
         return res

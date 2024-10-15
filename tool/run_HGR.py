@@ -344,22 +344,21 @@ def test_solve_with_model_sequence(q_id, model_id_list):
 
 if __name__ == "__main__":
     # Test multiple questions
-    evaluate_all_questions(2401, 3001)
+    # evaluate_all_questions(2401, 3001)
 
-    # try:
-    #     q_id = args.question_id
+    try:
+        q_id = 2413
 
-    #     # Test and answer single questions
-    #     # test_one_question(q_id)
+        # Test and answer single questions
+        # test_one_question(q_id)
 
-    #     # Test model matching
-    #     test_graph_matching(q_id)
+        # Test model matching
+        test_graph_matching(q_id)
 
-    #     # Draw a global map
-    #     # test_draw_global_graph(q_id)
+        # Draw a global map
+        # test_draw_global_graph(q_id)
 
-    #     # test_solve_with_model_sequence(q_id, [45, 53])
-    # except argparse.ArgumentError:
-    #     logger.error("Error: question id is required")
-    #     parser.print_help()
-    #     sys.exit(1)
+        # test_solve_with_model_sequence(q_id, [45, 53])
+    except argparse.ArgumentError:
+        logger.error("Error: question id is required")
+        sys.exit(1)
