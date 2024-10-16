@@ -85,7 +85,7 @@ def onehop_collate_fn(batch, zipped=False):
     }
 
 
-def __preprocess_item(item, node_type_vocab, node_attr_vocab, edge_attr_vocab, spatial_pos_max):
+def preprocess_item(item, node_type_vocab, node_attr_vocab, edge_attr_vocab, spatial_pos_max):
     node, node_type, node_attr, edge_index, edge_attr, target_node = item['node'], item['node_type'], item['node_attr'], \
         item['edge_index'], item['edge_attr'], item['target_node']
     N = len(node)

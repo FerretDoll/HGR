@@ -19,7 +19,7 @@ from tqdm import trange
 from collections import namedtuple, deque
 
 from agent.gen_vocab import reparse_graph_data
-from agent.graph_dataset import onehop_collate_fn, __preprocess_item
+from agent.graph_dataset import onehop_collate_fn, preprocess_item
 from agent.model.graphtransformer.model import GraphormerEncoder
 from agent.model.graphtransformer.model_args import ModelArgs
 from reasoner import config
@@ -107,7 +107,7 @@ def theorem_pred(graph_solver, model):
     graph_data = graph_solver.global_graph.to_dict()
     graph_data, map_dict = reparse_graph_data(graph_data, map_dict)
 
-    single_test_data = __preprocess_item(item=graph_data, node_type_vocab=node_type_vocab,
+    single_test_data = preprocess_item(item=graph_data, node_type_vocab=node_type_vocab,
                                          node_attr_vocab=node_attr_vocab, edge_attr_vocab=edge_attr_vocab,
                                          spatial_pos_max=1)
     for k, v in single_test_data.items():
@@ -298,7 +298,7 @@ def generate_state(graph_solver):
     global map_dict
     graph_data = graph_solver.global_graph.to_dict()
     graph_data, map_dict = reparse_graph_data(graph_data, map_dict)
-    state = __preprocess_item(item=graph_data, node_type_vocab=node_type_vocab, node_attr_vocab=node_attr_vocab,
+    state = preprocess_item(item=graph_data, node_type_vocab=node_type_vocab, node_attr_vocab=node_attr_vocab,
                               edge_attr_vocab=edge_attr_vocab, spatial_pos_max=1)
     for k, v in state.items():
         state[k] = v.unsqueeze(0).cpu()

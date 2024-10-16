@@ -125,6 +125,7 @@ class GraphSolver:
         return iter(lambda: list(islice(it, size)), [])
 
     def is_within_domain(self, sol):
+        # TODO : Check if the unknown variables are substituted into the node and meet the domain
         for var, value in sol.items():
             if str(var) in self.global_graph.graph.nodes:
                 if value.is_number:

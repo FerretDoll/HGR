@@ -13,7 +13,7 @@ import random
 from func_timeout import func_timeout, FunctionTimedOut
 from PIL import Image
 
-from agent.graph_dataset import __preprocess_item
+from agent.graph_dataset import preprocess_item
 from agent.model.graphtransformer.model import GraphormerEncoder
 from agent.model.graphtransformer.model_args import ModelArgs
 from agent.gen_vocab import reparse_graph_data
@@ -65,7 +65,7 @@ def theorem_pred(graph_solver, model):
     graph_data = graph_solver.global_graph.to_dict()
     graph_data, map_dict = reparse_graph_data(graph_data, map_dict)
 
-    single_test_data = __preprocess_item(item=graph_data, node_type_vocab=node_type_vocab,
+    single_test_data = preprocess_item(item=graph_data, node_type_vocab=node_type_vocab,
                                          node_attr_vocab=node_attr_vocab, edge_attr_vocab=edge_attr_vocab,
                                          spatial_pos_max=1)
     for k, v in single_test_data.items():
