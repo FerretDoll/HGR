@@ -732,7 +732,8 @@ def Logic2Graph(logic, target):
         node_attr.append(convert_degrees_to_radians(angleMeasure))
     node_visual_attr.extend([base_theorem.calc_angle_measure(tuple(char for char in angle), is_rad=True)
                              for angle in angles])
-    node_domain.extend([Interval(0, pi, left_open=True, right_open=True) for angle in angles])
+    # TODO Need to solve the problem of reflex angles for concave polygons
+    node_domain.extend([Interval(0, 2*pi, left_open=True, right_open=True) for angle in angles])
     node.extend(['arc_' + ''.join(arc) for arc in arcs])
     node_type.extend(['Arc' for arc in arcs])
     for arcMeasure in arcMeasures:

@@ -130,20 +130,14 @@ def solve_question(q_id):
         res["step_lst"] = graph_solver.matched_model_list
         res["model_instance_eq_num"] = graph_solver.model_instance_eq_num
         if answer is not None:
-            if check_answer(answer, candidate_value_list, gt_id):
+            correctness, transformed_answer = check_transformed_answer(answer, candidate_value_list, gt_id)
+            if correctness:
                 res["correctness"] = "yes"
+                res["answer"] = transformed_answer
             else:
-                # It may be necessary to convert radians to degrees before verifying the answer
-                answer_degrees = np.degrees(float(answer))
-                if check_answer(answer_degrees, candidate_value_list, gt_id):
-                    res["correctness"] = "yes"
-                    answer = answer_degrees
-                elif check_answer(360 - answer_degrees, candidate_value_list, gt_id):
-                    res["correctness"] = "yes"
-                    answer = 360 - answer_degrees
+                res["answer"] = answer
 
         res["target"] = target
-        res["answer"] = answer
         logger.debug("Answer: %s", answer)
         res['time'] = str(time.time() - s_time)
     except Exception as e:
@@ -271,6 +265,8 @@ def check_transformed_answer(answer, candidate_value_list, gt_id):
             elif check_answer(360 - answer_degrees, candidate_value_list, gt_id):
                 answer = 360 - answer_degrees
                 return True, answer
+
+            return False, None
     else:
         return False, None
 
@@ -312,7 +308,7 @@ def check_id_in_error_ids(question_id, error_file):
 
 def test_one_question(q_id):
     if check_id_in_error_ids(q_id, config.error_ids_path):
-        logger.error(f"Error: question id {q_id} is in error_ids")
+        logger.error(f"Error: question id {q_id} is in parsing_error_ids")
         sys.exit(1)
 
     if is_debugging():
@@ -328,7 +324,7 @@ def test_one_question(q_id):
 
 def test_solve_with_model_sequence(q_id, model_id_list):
     if check_id_in_error_ids(q_id, config.error_ids_path):
-        logger.error(f"Error: question id {q_id} is in error_ids")
+        logger.error(f"Error: question id {q_id} is in parsing_error_ids")
         sys.exit(1)
 
     if is_debugging():

@@ -88,6 +88,7 @@ class AgentSolver:
         hyp_steps = [[]]
         hyp_scores = [0.]
         beam_search_res = {"answer": None, "step_lst": [], "model_instance_eq_num": None}
+        all_conti_hyp_steps = []
 
         while t < self.max_step:
             t += 1
@@ -111,6 +112,8 @@ class AgentSolver:
             conti_hyp_scores = torch.Tensor(conti_hyp_scores)
             top_cand_hyp_scores, top_cand_hyp_pos = torch.topk(conti_hyp_scores,
                                                                k=min(self.beam_size, conti_hyp_scores.size(0)))
+            if len(conti_hyp_steps) > 0:
+                all_conti_hyp_steps.append(conti_hyp_steps)
 
             new_hypotheses = []
             new_hyp_scores = []
@@ -146,6 +149,7 @@ class AgentSolver:
             hyp_scores = new_hyp_scores
             hyp_steps = new_hyp_steps
 
+        beam_search_res["step_lst"] = all_conti_hyp_steps
         return beam_search_res
 
     def solve(self, q_id):
@@ -180,10 +184,12 @@ class AgentSolver:
         res["model_instance_eq_num"] = beam_search_res["model_instance_eq_num"]
         res['time'] = str(time.time() - s_time)
         if answer is not None:
-            correctness, answer = check_transformed_answer(answer, candidate_value_list, gt_id)
-            res["answer"] = answer
+            correctness, transformed_answer = check_transformed_answer(answer, candidate_value_list, gt_id)
             if correctness:
                 res["correctness"] = "yes"
+                res["answer"] = transformed_answer
+            else:
+                res["answer"] = answer
 
         return res
 
@@ -212,7 +218,7 @@ def solve_with_time(solver, q_id):
            "correctness": "no", "time": None}
 
     if q_id not in diagram_logic_forms_json or q_id not in text_logic_forms_json or q_id in error_ids:
-        eval_logger.debug(f'q_id: {q_id} - q_id in error_ids')
+        eval_logger.debug(f'q_id: {q_id} - q_id in parsing_error_ids')
         return res
 
     manager = mp.Manager()
@@ -230,7 +236,7 @@ def solve_with_time(solver, q_id):
     res = return_dict.get('result', res)
 
     if res["correctness"] == "no":
-        eval_logger.error(f'q_id: {q_id} - Agent failed, fallback to heuristic strategy')
+        eval_logger.error(f'q_id: {q_id} - Agent failed, fallback to heuristic strategy: {res}')
 
         p_fallback = mp.Process(target=solve_heuristic_process, args=(return_dict, q_id, res,))
         p_fallback.start()

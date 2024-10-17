@@ -550,7 +550,7 @@ def train_loop(model, optimizer):
             model_id_seq = []
             q_id = str(q_id)
             if q_id not in diagram_logic_forms_json or q_id not in text_logic_forms_json or q_id in error_ids:
-                train_logger.debug(f'step: {model_update_steps}, q_id: {q_id} - q_id in error_ids')
+                train_logger.debug(f'step: {model_update_steps}, q_id: {q_id} - q_id in parsing_error_ids')
                 continue
 
             try:
