@@ -7,7 +7,7 @@ import copy
 import numpy as np
 import torch
 
-import multiprocessing as mp
+import torch.multiprocessing as mp
 
 from agent.graph_dataset import preprocess_item
 from agent.model.graphtransformer.model import GraphormerEncoder
@@ -23,6 +23,7 @@ from tool.run_HGR import get_graph_solver, solve_question, check_transformed_ans
 
 random.seed(0)
 EPSILON = 1e-5
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--use_annotated", action="store_true", help="use annotated data or generated data")
@@ -34,11 +35,7 @@ args = parser.parse_args()
 
 
 class AgentSolver:
-    def __init__(self, model_path, max_step, beam_size):
-        self.model_pool = None
-        self.model_id_map = None
-        self.error_ids = None
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    def __init__(self, model_path, max_step=10, beam_size=5):
         self.model = None
         self.node_type_vocab = None
         self.node_attr_vocab = None
@@ -46,15 +43,12 @@ class AgentSolver:
         self.max_step = max_step
         self.beam_size = beam_size
         self.map_dict = {}
-
-        # 初始化数据和模型
-        self.init_data_and_model(model_path)
-
-    def init_data_and_model(self, model_path):
         with open(config.model_pool_path, 'r') as model_pool_file:
             self.model_pool, self.model_id_map = load_models_from_json(json.load(model_pool_file))
 
-        # 加载模型和词汇表
+        self.init_data_and_model(model_path)
+
+    def init_data_and_model(self, model_path):
         node_type_vocab_file = 'agent/vocab/node_type_vocab.txt'
         node_attr_vocab_file = 'agent/vocab/node_attr_vocab.txt'
         edge_attr_vocab_file = 'agent/vocab/edge_attr_vocab.txt'
@@ -68,9 +62,9 @@ class AgentSolver:
                                edge_type="one_hop",
                                multi_hop_max_dist=1)
 
-        self.model = GraphormerEncoder(model_args).to(self.device).share_memory()
+        self.model = GraphormerEncoder(model_args).to(device).share_memory()
         if model_path:
-            self.model.load_state_dict(torch.load(model_path, map_location=self.device))
+            self.model.load_state_dict(torch.load(model_path, map_location=device))
         self.model.eval()
 
     def theorem_pred(self, graph_solver):
@@ -81,7 +75,7 @@ class AgentSolver:
                                              node_attr_vocab=self.node_attr_vocab, edge_attr_vocab=self.edge_attr_vocab,
                                              spatial_pos_max=1)
         for k, v in single_test_data.items():
-            single_test_data[k] = v.unsqueeze(0).to(self.device)
+            single_test_data[k] = v.unsqueeze(0).to(device)
         output_logits = self.model(single_test_data)
         score = torch.softmax(output_logits, dim=-1).squeeze(0)
         sorted_score = torch.sort(score, descending=True)
@@ -232,7 +226,6 @@ def solve_with_time(solver, q_id):
         p.terminate()
         p.join()
         eval_logger.error(f'q_id: {q_id} - Timeout during agent solving')
-        return res
 
     res = return_dict.get('result', res)
 
@@ -264,7 +257,6 @@ def eval(solver, st, ed):
 
 if __name__ == "__main__":
     torch.multiprocessing.set_start_method('spawn', force=True)
-    solver = AgentSolver(model_path=args.model_path, max_step=10, beam_size=5)
 
     with open(config.error_ids_path, 'r') as file:
         error_ids = {line.strip() for line in file}
@@ -281,6 +273,8 @@ if __name__ == "__main__":
             diagram_logic_forms_json = json.load(diagram_file)
         with open(config.pred_text_logic_forms_json_path, 'r') as text_file:
             text_logic_forms_json = json.load(text_file)
+
+    solver = AgentSolver(args.model_path)
 
     if args.question_id:
         if args.use_agent:

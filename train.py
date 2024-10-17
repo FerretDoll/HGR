@@ -461,7 +461,7 @@ def optimize_model(model, optimizer):
         model_update_steps += 1
         writer.add_scalar('train_loss', loss.item(), global_step=model_update_steps)
 
-        if model_update_steps % 50 == 0:
+        if model_update_steps % 100 == 0:
             torch.save(model.state_dict(), output_path + "/graph_model_RL_step" + str(model_update_steps) + ".pt")
             torch.cuda.empty_cache()
 
