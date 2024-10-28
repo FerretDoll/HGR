@@ -4,7 +4,7 @@ from itertools import combinations, islice
 
 from func_timeout import func_timeout, FunctionTimedOut
 from sympy import symbols, Eq, sympify, cos, sin, pi, solve, tan, parse_expr, Mul, Rational, N, \
-    SympifyError, Symbol, cot, sec, csc, simplify, Interval
+    SympifyError, Symbol, cot, sec, csc, simplify, Interval, Abs
 
 from reasoner.graph_matching import get_candidate_models_from_pool, match_graphs, apply_mapping_to_actions, \
     apply_mapping_to_equations, load_models_from_json, replace_variables_equation
@@ -124,15 +124,100 @@ class GraphSolver:
         it = iter(iterable)
         return iter(lambda: list(islice(it, size)), [])
 
+    def select_best_solution(self, solutions):
+        if len(solutions) == 1:
+            return solutions[0]
+
+        temp_solutions = [{} for _ in solutions]
+        var_names = solutions[0].keys()
+        var_names_str = []
+        for var_name in var_names:
+            var_name_str = str(var_name)
+            if var_name_str in self.global_graph.graph.nodes:
+                var_names_str.append(var_name_str)
+                for i in range(len(solutions)):
+                    temp_solutions[i][var_name_str] = solutions[i][var_name]
+            else:
+                found = False
+                for node_id, node_attrs in self.global_graph.graph.nodes(data=True):
+                    node_value = node_attrs.get('value')
+                    if node_value != 'None' and node_id not in var_names_str:
+                        for single_value in node_value:
+                            if not isNumber(single_value):
+                                parsed_expr = sympify(single_value)
+                                symbols_in_expr = parsed_expr.atoms(Symbol)
+
+                                if len(symbols_in_expr) == 1:
+                                    single_symbol = next(iter(symbols_in_expr))
+
+                                    if str(single_symbol) == str(var_name_str):
+                                        var_names_str.append(node_id)
+                                        for i in range(len(solutions)):
+                                            new_value = parsed_expr.subs(single_symbol, solutions[i][var_name])
+                                            temp_solutions[i][node_id] = new_value
+                                        found = True
+                                        break
+                    if found:
+                        break
+
+        if len(var_names_str) > 1:
+            visual_ratios = {}
+            for var1, var2 in combinations(var_names_str, 2):
+                ratio_name = f"{var1}/{var2}"
+                visual_ratios[ratio_name] = (self.global_graph.get_node_visual_value(var1) /
+                                             self.global_graph.get_node_visual_value(var2))
+
+            min_diff = float('inf')
+            best_solution_idx = 0
+            idx = 0
+            for temp_solution in temp_solutions:
+                var_values = {var: N(temp_solution[var]) for var in var_names_str}
+
+                solution_ratios = {}
+                for var1, var2 in combinations(var_names_str, 2):
+                    ratio_name = f"{var1}/{var2}"
+                    solution_ratios[ratio_name] = var_values[var1] / var_values[var2]
+
+                total_ratio_diff = sum(Abs(solution_ratios[r] - visual_ratios[r]) for r in visual_ratios)
+
+                total_diff = total_ratio_diff
+
+                if total_diff < min_diff:
+                    min_diff = total_diff
+                    best_solution_idx = idx
+
+                idx += 1
+
+            return solutions[best_solution_idx]
+        else:
+            return solutions[0]
+
     def is_within_domain(self, sol):
-        # TODO : Check if the unknown variables are substituted into the node and meet the domain
         for var, value in sol.items():
-            if str(var) in self.global_graph.graph.nodes:
-                if value.is_number:
+            if value.is_number:
+                if str(var) in self.global_graph.graph.nodes:
                     interval = self.global_graph.get_node_domain(str(var))
                     if isinstance(interval, Interval):
                         if not interval.contains(value):
                             return False
+                else:
+                    for node_id, node_attrs in self.global_graph.graph.nodes(data=True):
+                        node_value = node_attrs.get('value')
+                        if node_value != 'None':
+                            for single_value in node_value:
+                                if not isNumber(single_value):
+                                    parsed_expr = sympify(single_value)
+                                    symbols_in_expr = parsed_expr.atoms(Symbol)
+
+                                    if len(symbols_in_expr) == 1:
+                                        single_symbol = next(iter(symbols_in_expr))
+
+                                        if str(single_symbol) == str(var):
+                                            new_value = parsed_expr.subs(single_symbol, value)
+                                            interval = self.global_graph.get_node_domain(node_id)
+                                            if isinstance(interval, Interval):
+                                                if not interval.contains(new_value):
+                                                    return False
 
         return True
 
@@ -416,8 +501,7 @@ class GraphSolver:
                                     sol = func_timeout(10, solve, kwargs=dict(f=pairs, dict=True))
                                     sol = [s for s in sol if self.is_within_domain(s)]
                                     if len(sol) > 0:
-                                        sol = max(sol,
-                                                  key=estimate)  # TODO This may need to be modified because it is more reasonable to select the most similar set of solutions by comparing them with visual values
+                                        sol = self.select_best_solution(sol)
                                         logger.debug(f"Solution: {sol}")
                                         for var, value in sol.items():
                                             knows_added_step_2[var] = value
