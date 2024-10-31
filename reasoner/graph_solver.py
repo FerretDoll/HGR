@@ -616,6 +616,7 @@ class GraphSolver:
             mapping_dict_list = func_timeout(10, match_graphs, args=(model, self.global_graph, self.symbols,
                                                                      self.init_solutions))
         except FunctionTimedOut:
+            logger.error("Timeout when matching the model.")
             return new_actions, new_equations
         for mapping_dict in mapping_dict_list:
             relation = model.generate_relation(mapping_dict)

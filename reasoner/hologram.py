@@ -284,6 +284,7 @@ class GraphModel(Hologram):
         self.visual_constraints = ""
         self.actions = []
         self.equations = []
+        self.fixed_nodes = []
 
     def generate_relation(self, mapping_dict):
         """
@@ -310,6 +311,7 @@ class GraphModel(Hologram):
         relation = json_data.get("relation", "")
         constraints = json_data.get("constraints", "")
         visual_constraints = json_data.get("visual_constraints", "")
+        fixed_nodes = json_data.get("fixed_nodes", [])
         actions = json_data.get("actions", [])
         equations = json_data.get("equations", [])
         node_types = json_data.get("node_types", "")
@@ -322,6 +324,7 @@ class GraphModel(Hologram):
         model_graph.relation_template = relation  # set relation
         model_graph.constraints = constraints  # Set mathematical constraints
         model_graph.visual_constraints = visual_constraints  # Set visual constraints
+        model_graph.fixed_nodes = fixed_nodes
         model_graph.actions = actions  # Set action
         model_graph.equations = equations  # Set equation
         model_graph.node_types = node_types

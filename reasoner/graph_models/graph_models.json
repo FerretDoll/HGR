@@ -4,6 +4,7 @@
     "relation": "Equals(MeasureOf($angle_1),Add(MeasureOf($angle_2),MeasureOf($angle_3)))",
     "constraints": "",
     "visual_constraints": "angle_1 > angle_2 AND angle_1 > angle_3 AND angle_2 + angle_3 < pi",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "angle_1 = angle_2 + angle_3"
@@ -143,6 +144,7 @@
     "relation": "Equals(Add(MeasureOf($angle_1),MeasureOf($angle_2)),pi)",
     "constraints": "",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "angle_1 + angle_2 = pi"
@@ -291,6 +293,7 @@
     "relation": "Equals(LengthOf($line_ac),Add(LengthOf($line_ab),LengthOf($line_bc)))",
     "constraints": "",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "line_ac = line_ab + line_bc"
@@ -411,6 +414,7 @@
     "relation": "Triangle($a, $b, $c)",
     "constraints": "",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "angle_acb + angle_abc + angle_bac = pi",
@@ -704,6 +708,7 @@
     "relation": "Right(Triangle($a, $b, $c))",
     "constraints": "angle_bac = pi / 2",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "angle_acb + angle_abc = pi / 2",
@@ -999,6 +1004,7 @@
     "relation": "Isosceles($triangle_bcd)",
     "constraints": "line_cd = line_bd AND angle_cad = pi / 2",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "angle_adc = angle_adb",
@@ -1305,6 +1311,7 @@
     "relation": "Equals(LengthOf($line_cd),LengthOf($line_bd))",
     "constraints": "line_ab = line_ac AND angle_cad = pi / 2",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "angle_adc = angle_adb",
@@ -1611,6 +1618,7 @@
     "relation": "Equals(LengthOf($line_1),LengthOf($line_2))",
     "constraints": "angle_1 = angle_2",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "line_1 = line_2"
@@ -1720,6 +1728,7 @@
     "relation": "Equals(MeasureOf($angle_1),MeasureOf($angle_2))",
     "constraints": "line_1 = line_2",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "angle_1 = angle_2"
@@ -1829,6 +1838,7 @@
     "relation": "Equals(Div(LengthOf($line_ac),LengthOf($line_bc)),Div(LengthOf($line_1),LengthOf($line_2)))",
     "constraints": "angle_1 = angle_2",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "line_ac / line_bc = line_1 / line_2"
@@ -2052,6 +2062,7 @@
     "relation": "Congruent_Prove($triangle_1,$triangle_2)",
     "constraints": "(line_2 = line_4 AND line_3 = line_5) OR (angle_4 = angle_3 AND angle_5 = angle_2 AND angle_6 = angle_1)",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [
       {
         "type": "add_edge",
@@ -2293,6 +2304,7 @@
     "relation": "Congruent($triangle_1, $triangle_2)",
     "constraints": "",
     "visual_constraints": "line_1 = line_6 AND line_2 = line_5 AND line_3 = line_4 AND angle_1 = angle_4 AND angle_2 = angle_5 AND angle_3 = angle_6",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "line_1 = line_6",
@@ -2558,6 +2570,7 @@
     "relation": "Congruent_($triangle_1,$triangle_2)",
     "constraints": "",
     "visual_constraints": "line_2 = line_4 AND line_3 = line_5",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "line_2 = line_4",
@@ -2801,8 +2814,9 @@
   "Triangle_Similar_Prove_1": {
     "id": 13,
     "relation": "Similar_Prove($triangle_1,$triangle_2)",
-    "constraints": "(line_1 / line_3 = line_2 / line_5 AND line_2 / line_5 = line_3 / line_4) OR (angle_1 = angle_4 AND angle_2 = angle_5) OR (angle_1 = angle_4 AND line_2 / line_4 = line_3 / line_5)",
+    "constraints": "(line_1 / line_3 = line_2 / line_5 AND line_2 / line_5 = line_3 / line_4) OR (angle_1 = angle_4 AND angle_2 = angle_5) OR (angle_1 = angle_4 AND line_2 / line_4 = line_3 / line_5) OR (angle_1 = pi / 2 AND angle_4 = pi / 2 AND line_1 / line_6 = line_2 / line_4)",
     "visual_constraints": "",
+    "fixed_nodes": ["triangle_1", "triangle_2"],
     "actions": [
       {
         "type": "add_edge",
@@ -3063,6 +3077,7 @@
     "relation": "Similar_Prove($triangle_1,$triangle_2)",
     "constraints": "angle_1 = angle_4 OR angle_2 = angle_3 OR line_1 / line_4 = line_3 / line_1",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [
       {
         "type": "add_edge",
@@ -3351,6 +3366,7 @@
     "relation": "Similar_Prove($triangle_1,$triangle_2)",
     "constraints": "(line_2 / line_6 = line_3 / line_5) OR (angle_2 = angle_4 AND angle_3 = angle_5) OR (angle_2 = angle_4 AND line_2 / line_6 = line_1 / line_4)",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [
       {
         "type": "add_edge",
@@ -3592,6 +3608,7 @@
     "relation": "Similar_Prove($triangle_1,$triangle_2)",
     "constraints": "(line_2 / line_6 = line_3 / line_5) OR (angle_2 = angle_4 AND angle_3 = angle_5) OR (angle_2 = angle_4 AND line_2 / line_6 = line_1 / line_4)",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [
       {
         "type": "add_edge",
@@ -3840,6 +3857,7 @@
     "relation": "Similar($triangle_1, $triangle_2)",
     "constraints": "",
     "visual_constraints": "line_1 / line_6 = line_2 / line_5 AND line_2 / line_5 = line_3 / line_4 AND angle_1 = angle_4 AND angle_2 = angle_5 AND angle_3 = angle_6",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "line_1 / line_6 = line_2 / line_5",
@@ -4104,6 +4122,7 @@
     "relation": "Similar($triangle_1,$triangle_2)",
     "constraints": "",
     "visual_constraints": "angle_1 = angle_4 AND angle_2 = angle_3 AND line_1 / line_4 = line_3 / line_1",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "line_1 / line_4 = line_3 / line_1",
@@ -4388,6 +4407,7 @@
     "relation": "Similar($triangle_1,$triangle_2)",
     "constraints": "",
     "visual_constraints": "angle_2 = angle_4 AND angle_3 = angle_5",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "line_2 / line_6 = line_3 / line_5",
@@ -4632,6 +4652,7 @@
     "relation": "Similar($triangle_1,$triangle_2)",
     "constraints": "",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "line_1 / line_4 = line_2 / line_6",
@@ -4941,6 +4962,7 @@
     "relation": "IsGravityOf($e,$triangle_acf)",
     "constraints": "line_ag = line_fg AND line_df = line_cd AND line_ab = line_bc",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "line_ae = 2 * line_de",
@@ -5338,6 +5360,7 @@
     "relation": "Parallel_Prove($line_1,$line_2)",
     "constraints": "angle_1 = angle_2",
     "visual_constraints": "line_1 || line_2",
+    "fixed_nodes": [],
     "actions": [
       {
         "type": "add_edge",
@@ -5474,6 +5497,7 @@
     "relation": "Parallel_Prove($line_bc,$line_1)",
     "constraints": "angle_1 = angle_2 OR angle_1 + angle_2 = pi",
     "visual_constraints": "line_bc || line_1",
+    "fixed_nodes": [],
     "actions": [
       {
         "type": "add_edge",
@@ -5644,6 +5668,7 @@
     "relation": "Parallel_Prove($line_bc,$line_1)",
     "constraints": "angle_1 = angle_2 OR angle_1 + angle_2 = pi",
     "visual_constraints": "line_bc || line_1",
+    "fixed_nodes": [],
     "actions": [
       {
         "type": "add_edge",
@@ -5820,6 +5845,7 @@
     "relation": "Equals(Add(MeasureOf($angle_1),MeasureOf($angle_2)),pi)",
     "constraints": "angle_1 + angle_2 = pi",
     "visual_constraints": "line_1 || line_2",
+    "fixed_nodes": [],
     "actions": [
       {
         "type": "add_edge",
@@ -5903,6 +5929,7 @@
     "relation": "Equals(MeasureOf($angle_1),MeasureOf($angle_2))",
     "constraints": "",
     "visual_constraints": "angle_1 = angle_2",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "angle_1 = angle_2"
@@ -6039,6 +6066,7 @@
     "relation": "Equals(MeasureOf($angle_1),MeasureOf($angle_2))",
     "constraints": "",
     "visual_constraints": "angle_1 = angle_2",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "angle_1 = angle_2"
@@ -6122,6 +6150,7 @@
     "relation": "Equals(Add(MeasureOf($angle_1),MeasureOf($angle_2)),pi)",
     "constraints": "",
     "visual_constraints": "angle_1 + angle_2 = pi",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "angle_1 + angle_2 = pi"
@@ -6205,6 +6234,7 @@
     "relation": "Parallel($line_ce,$line_ad),Parallel($line_ce,$line_df),Parallel($line_be,$line_ad),Parallel($line_be,$line_df)",
     "constraints": "",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [
       {
         "type": "add_edge",
@@ -6453,6 +6483,7 @@
     "relation": "Parallel($line_bc,$line_1)&Parallel($line_ab,$line_1)",
     "constraints": "",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [
       {
         "type": "add_edge",
@@ -6594,6 +6625,7 @@
     "relation": "Equals(LengthOf($line_ae),LengthOf($line_de))&Equals(LengthOf($line_be),LengthOf($line_ce))",
     "constraints": "",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "line_ae = line_de",
@@ -6901,6 +6933,7 @@
     "relation": "Equals(LengthOf($line_ab),LengthOf($line_cd))&Equals(LengthOf($line_bc),LengthOf($line_ad))",
     "constraints": "",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "line_ab = line_cd",
@@ -7050,6 +7083,7 @@
     "relation": "Pentagon($a,$b,$c,$d,$e)",
     "constraints": "",
     "visual_constraints": "angle_aed + angle_cde + angle_bcd + angle_abc + angle_bae = 3 * pi",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "angle_aed + angle_cde + angle_bcd + angle_abc + angle_bae = 3 * pi"
@@ -7311,6 +7345,7 @@
     "relation": "IsMedianOf($line_ab,$polygon_1)",
     "constraints": "line_5 = line_6 AND line_7 = line_8",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [
       {
         "type": "add_edge",
@@ -7643,6 +7678,7 @@
     "relation": "Equals(Add(MeasureOf($angle_1),MeasureOf($angle_2),MeasureOf($angle_3)),2*pi)",
     "constraints": "",
     "visual_constraints": "angle_1 + angle_2 + angle_3 = 2 * pi",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "angle_1 + angle_2 + angle_3 = 2 * pi"
@@ -7788,6 +7824,7 @@
     "relation": "Equals(Add(MeasureOf($angle_1),MeasureOf($angle_2),MeasureOf($angle_3),MeasureOf($angle_4)),2*pi)",
     "constraints": "",
     "visual_constraints": "angle_1 + angle_2 + angle_3 + angle_4 = 2 * pi",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "angle_1 + angle_2 + angle_3 + angle_4 = 2 * pi"
@@ -7967,6 +8004,7 @@
     "relation": "Equals(Mul(LengthOf($line_ab),LengthOf($line_bc)),Mul(LengthOf($line_bd),LengthOf($line_be)))",
     "constraints": "",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "line_ab * line_bc = line_bd * line_be"
@@ -8197,6 +8235,7 @@
     "relation": "Equals(Mul(LengthOf($line_ab),LengthOf($line_bc)),Mul(LengthOf($line_bd),LengthOf($line_be)))",
     "constraints": "",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "line_ab * line_bc = line_bd * line_be"
@@ -8433,6 +8472,7 @@
     "relation": "Equals(LengthOf($line_ac),LengthOf($line_ab))",
     "constraints": "",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "line_ac = line_ab"
@@ -8543,6 +8583,7 @@
     "relation": "Equals(LengthOf($line_ac),LengthOf($line_ab))",
     "constraints": "",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "line_ac = line_ab"
@@ -8659,6 +8700,7 @@
     "relation": "Equals(LengthOf($line_ac),LengthOf($line_bc))",
     "constraints": "angle_bfd = pi / 2 AND angle_aed = pi / 2 AND line_de = line_df",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "line_ac = line_bc"
@@ -8953,6 +8995,7 @@
     "relation": "Equals(LengthOf($line_bd),LengthOf($line_ac))",
     "constraints": "angle_beg = pi / 2 AND angle_afg = pi / 2 AND line_eg = line_fg",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "line_bd = line_ac"
@@ -9264,6 +9307,7 @@
     "relation": "Equals(LengthOf($line_de),LengthOf($line_df))",
     "constraints": "angle_bfd = pi / 2 AND angle_aed = pi / 2 AND line_ac = line_bc",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "line_de = line_df"
@@ -9558,6 +9602,7 @@
     "relation": "Equals(LengthOf($line_eg),LengthOf($line_fg))",
     "constraints": "angle_beg = pi / 2 AND angle_afg = pi / 2 AND line_bd = line_ac",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "line_eg = line_fg"
@@ -9869,6 +9914,7 @@
     "relation": "Equals(MeasureOf($angle_acb),Div(MeasureOf($angle_adb),2))",
     "constraints": "",
     "visual_constraints": "angle_acb < pi /2",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "angle_acb = angle_adb / 2"
@@ -10021,6 +10067,7 @@
     "relation": "Equals(MeasureOf($angle_acb),Div(MeasureOf($angle_adb),2))",
     "constraints": "",
     "visual_constraints": "angle_acb < pi /2",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "angle_acb = angle_adb / 2"
@@ -10179,6 +10226,7 @@
     "relation": "Equals(Mul(LengthOf($line_ae),LengthOf($line_be)),Mul(LengthOf($line_de),LengthOf($line_ce)))",
     "constraints": "",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "line_ae * line_be = line_de * line_ce"
@@ -10409,6 +10457,7 @@
     "relation": "Equals(Mul(LengthOf($line_ae),LengthOf($line_be)),Mul(LengthOf($line_de),LengthOf($line_ce)))",
     "constraints": "",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "line_ae * line_be = line_de * line_ce"
@@ -10645,6 +10694,7 @@
     "relation": "Equals(SquareOf(LengthOf($line_ac)),Mul(LengthOf($line_ce),LengthOf($line_de)))",
     "constraints": "angle_bac = pi/2",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "line_ac**2 = line_ce * line_cd"
@@ -10875,6 +10925,7 @@
     "relation": "Right(Triangle($a, $b, $d))",
     "constraints": "",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "angle_adb = pi/2"
@@ -11068,6 +11119,7 @@
     "relation": "Right(Triangle($a, $b, $d))",
     "constraints": "",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "angle_adb = pi/2"
@@ -11267,6 +11319,7 @@
     "relation": "AreaOf($circle_b)",
     "constraints": "",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "circle_b = line_ab**2 * pi"
@@ -11343,6 +11396,7 @@
     "relation": "Equals(AreaOf($triangle_bcd),Add(AreaOf($triangle_abc),AreaOf($triangle_abd)))",
     "constraints": "",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "triangle_bcd= triangle_abc + triangle_abd"
@@ -11524,6 +11578,7 @@
     "relation": "Equals(AreaOf($polygon_abcd),Add(AreaOf($triangle_acd),AreaOf($triangle_abd)))",
     "constraints": "",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "polygon_abcd = triangle_acd + triangle_abd"
@@ -11673,6 +11728,7 @@
     "relation": "AreaOf($triangle_abc)",
     "constraints": "",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "triangle_abc = line_ab * line_bc * sin(angle_abc) / 2",
@@ -11962,6 +12018,7 @@
     "relation": "AreaOf(Right(Triangle($a, $b, $c)))",
     "constraints": "angle_bac = pi / 2",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "triangle_abc = line_ab * line_ac / 2"
@@ -12249,6 +12306,7 @@
     "relation": "AreaOf($polygon_abcd)",
     "constraints": "angle_aec = pi / 2",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "polygon_abcd = line_ae * line_cd"
@@ -12532,6 +12590,7 @@
     "relation": "AreaOf($polygon_bcde)",
     "constraints": "angle_bae = pi / 2",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "polygon_bcde = line_bd * line_ce / 2"
@@ -12743,6 +12802,7 @@
     "relation": "Quadrilateral($a,$b,$c,$d)",
     "constraints": "",
     "visual_constraints": "angle_abc + angle_bcd + angle_bad + angle_adc = 2 * pi",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "angle_abc + angle_bcd + angle_bad + angle_adc = 2 * pi"
@@ -12958,6 +13018,7 @@
     "relation": "Equals(AreaOf($polygon_acde),Add(AreaOf($triangle_abc),AreaOf($polygon_abde)))",
     "constraints": "",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "polygon_acde = triangle_abc + polygon_abde"
@@ -13163,6 +13224,7 @@
     "relation": "AreaOf($polygon_abcd)",
     "constraints": "angle_aec = pi / 2",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "polygon_abcd = line_ae * (line_ab+ line_cd) / 2"
@@ -13440,6 +13502,7 @@
     "relation": "AreaOf($polygon_1)",
     "constraints": "angle_3 = pi / 2 AND angle_4 = pi / 2",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "polygon_1 = line_1 * (line_2 + line_4) / 2"
@@ -13613,6 +13676,7 @@
     "relation": "AreaOf($polygon_1)",
     "constraints": "angle_1 = pi / 2 AND angle_2 = pi / 2 AND angle_3 = pi / 2 AND angle_4 = pi / 2",
     "visual_constraints": "",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "polygon_1 = line_1 * line_2",
@@ -13793,6 +13857,7 @@
     "relation": "Quadrilateral($a,$b,$c,$d)",
     "constraints": "",
     "visual_constraints": "angle_abc + angle_bcd + angle_bad + angle_adc = 2 * pi",
+    "fixed_nodes": [],
     "actions": [],
     "equations": [
       "angle_abc + angle_bcd + angle_bad + angle_adc = 2 * pi"

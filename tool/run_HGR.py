@@ -175,13 +175,13 @@ def log_listener_process(log_queue, log_file):
             traceback.print_exc(file=sys.stderr)
 
 
-def worker(q_id, log_queue):
+def worker(q_id, log_queue, time_limit=180):
     """Worker function to process each question."""
     logger = logging.getLogger(f'Worker-{q_id}')
     logger.setLevel(logging.DEBUG)
 
     try:
-        res = func_timeout(120, solve_question, args=(q_id,))
+        res = func_timeout(time_limit, solve_question, args=(q_id,))
 
         # Create log records and place them in the log queue
         log_record = logger.makeRecord(
@@ -306,7 +306,7 @@ def check_id_in_error_ids(question_id, error_file):
         return False
 
 
-def test_one_question(q_id):
+def test_one_question(q_id, time_limit=180):
     if check_id_in_error_ids(q_id, config.error_ids_path):
         logger.error(f"Error: question id {q_id} is in parsing_error_ids")
         sys.exit(1)
@@ -316,13 +316,13 @@ def test_one_question(q_id):
         logger.debug(res)
     else:
         try:
-            res = func_timeout(120, solve_question, args=(q_id,))
+            res = func_timeout(time_limit, solve_question, args=(q_id,))
             logger.debug(res)
         except FunctionTimedOut:
             logger.error(f"Error: solve_question timed out")
 
 
-def test_solve_with_model_sequence(q_id, model_id_list):
+def test_solve_with_model_sequence(q_id, model_id_list, time_limit=300):
     if check_id_in_error_ids(q_id, config.error_ids_path):
         logger.error(f"Error: question id {q_id} is in parsing_error_ids")
         sys.exit(1)
@@ -332,7 +332,7 @@ def test_solve_with_model_sequence(q_id, model_id_list):
         logger.debug(res)
     else:
         try:
-            res = func_timeout(120, solve_with_model_sequence, args=(q_id, model_id_list,))
+            res = func_timeout(time_limit, solve_with_model_sequence, args=(q_id, model_id_list,))
             logger.debug(res)
         except FunctionTimedOut:
             logger.error(f"Error: solve_question timed out")
@@ -343,18 +343,18 @@ if __name__ == "__main__":
     # evaluate_all_questions(2401, 3001)
 
     try:
-        q_id = 2413
+        q_id = 2404
 
         # Test and answer single questions
         # test_one_question(q_id)
 
         # Test model matching
-        test_graph_matching(q_id)
+        # test_graph_matching(q_id)
 
         # Draw a global map
         # test_draw_global_graph(q_id)
 
-        # test_solve_with_model_sequence(q_id, [45, 53])
+        test_solve_with_model_sequence(q_id, [40, 41, 13, 17])
     except argparse.ArgumentError:
         logger.error("Error: question id is required")
         sys.exit(1)

@@ -212,7 +212,7 @@ def solve_heuristic_process(return_dict, q_id, res):
         return_dict['result'] = res
 
 
-def solve_with_time(solver, q_id):
+def solve_with_time(solver, q_id, time_limit=180):
     q_id = str(q_id)
     res = {"id": q_id, "target": None, "answer": None, "step_lst": [], "model_instance_eq_num": None,
            "correctness": "no", "time": None}
@@ -227,7 +227,7 @@ def solve_with_time(solver, q_id):
     p = mp.Process(target=solve_process, args=(solver, return_dict, q_id, res,))
     p.start()
 
-    p.join(120)
+    p.join(time_limit)
     if p.is_alive():
         p.terminate()
         p.join()
@@ -240,7 +240,7 @@ def solve_with_time(solver, q_id):
 
         p_fallback = mp.Process(target=solve_heuristic_process, args=(return_dict, q_id, res,))
         p_fallback.start()
-        p_fallback.join(120)
+        p_fallback.join(time_limit)
         if p_fallback.is_alive():
             p_fallback.terminate()
             p_fallback.join()

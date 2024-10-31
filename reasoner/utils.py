@@ -192,6 +192,20 @@ def group_by_id_sets(match_results):
     return grouped_list
 
 
+def filter_mappings(mappings, fixed_keys):
+    # Store the value corresponding to the fixed key in the first mapping
+    key_values = {key: mappings[0][key] for key in fixed_keys}
+
+    # Filter out mappings that satisfy key values consistency
+    filtered_mappings = []
+    for mapping in mappings:
+        # Check if the fixed key value of the current mapping is consistent with the first mapping
+        if all(mapping[key] == key_values[key] for key in fixed_keys):
+            filtered_mappings.append(mapping)
+
+    return filtered_mappings
+
+
 def json_to_grf(json_data, is_directed=True):
     # Initialize GRF data string
     grf_data = ""

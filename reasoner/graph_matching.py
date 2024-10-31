@@ -8,7 +8,7 @@ from sympy import sympify, simplify, And, Or, Eq, Symbol, Le, Ge, Lt, Gt
 from ctypes import c_char_p, CFUNCTYPE
 
 from reasoner.hologram import GraphModel
-from reasoner.utils import filter_duplicates, group_by_id_sets
+from reasoner.utils import filter_duplicates, group_by_id_sets, filter_mappings
 from reasoner.config import TOLERANCE
 from utils.common_utils import calc_cross_angle
 from reasoner.config import logger
@@ -257,7 +257,6 @@ def evaluate_expression(constraints, global_symbols=None, init_solutions=None):
     placeholders = {}
     try:
         parsed_expr = parse_expression(constraints, placeholders, key_value_pair=None, is_visual=False)
-
         if isinstance(parsed_expr, bool):
             return parsed_expr
 
@@ -456,9 +455,14 @@ def match_graphs(model_graph, global_graph, global_symbols=None, init_solutions=
         if constraints_valid or visual_constraints_valid:
             grouped_list = group_by_id_sets(solution)
             for group in grouped_list:
+                parsed_mappings = []
                 for s in group:
                     mapping_dict = parse_mapping(model_graph, global_graph, s)
+                    parsed_mappings.append(mapping_dict)
 
+                filtered_mappings = filter_mappings(parsed_mappings, model_graph.fixed_nodes) \
+                    if len(model_graph.fixed_nodes) > 0 else parsed_mappings
+                for mapping_dict in filtered_mappings:
                     # Check visual constraints, validate them if they are valid, otherwise default to True
                     visual_constraints_flag = (not is_visual_constraints_valid(model_graph) or
                                                verify_visual_constraints(model_graph, global_graph, mapping_dict,
@@ -469,7 +473,6 @@ def match_graphs(model_graph, global_graph, global_symbols=None, init_solutions=
                         constraints_flag = (not is_constraints_valid(model_graph) or
                                             verify_constraints(model_graph, global_graph, mapping_dict, global_symbols,
                                                                init_solutions))
-
                         # If both flags are True, add to the list and exit the current loop
                         if constraints_flag:
                             mapping_dict_list.append(mapping_dict)
