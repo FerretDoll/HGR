@@ -1,7 +1,11 @@
 import ctypes
+import multiprocessing
 import re
 import subprocess
 import sys
+import time
+from functools import partial
+
 import sympy
 
 from sympy import sympify, simplify, And, Or, Eq, Symbol, Le, Ge, Lt, Gt
@@ -428,22 +432,72 @@ def apply_mapping_to_equations(model_graph, mapping, global_symbols):
     return new_equations
 
 
-def match_graphs(model_graph, global_graph, global_symbols=None, init_solutions=None):
+def is_constraints_valid(_model_graph):
+    """
+    Check if model_graph has valid mathematical constraints.
+    """
+    return _model_graph.constraints is not None and _model_graph.constraints != ""
+
+def is_visual_constraints_valid(_model_graph):
+    """
+    Check if model_graph has valid visual constraints.
+    """
+    return _model_graph.visual_constraints is not None and _model_graph.visual_constraints != ""
+
+
+def process_mapping(mapping_dict, model_graph, global_graph, global_symbols, init_solutions):
+    # Check visual constraints
+    visual_constraints_flag = (not is_visual_constraints_valid(model_graph) or
+                               verify_visual_constraints(model_graph, global_graph, mapping_dict, global_symbols))
+
+    if visual_constraints_flag:
+        # Check mathematical constraints
+        constraints_flag = (not is_constraints_valid(model_graph) or
+                            verify_constraints(model_graph, global_graph, mapping_dict, global_symbols, init_solutions))
+
+        # If both flags are True, return the mapping_dict
+        if constraints_flag:
+            return mapping_dict
+    return None
+
+
+def parallel_process(group, model_graph, global_graph, global_symbols, init_solutions, timeout=10):
+    parsed_mappings = [parse_mapping(model_graph, global_graph, s) for s in group]
+    filtered_mappings = (filter_mappings(parsed_mappings, model_graph.fixed_nodes)
+                         if len(model_graph.fixed_nodes) > 0 else parsed_mappings)
+
+    # Create a partial function with fixed arguments except for mapping_dict
+    process_func = partial(process_mapping, model_graph=model_graph, global_graph=global_graph,
+                           global_symbols=global_symbols, init_solutions=init_solutions)
+    start_time = time.time()
+    # Set up multiprocessing
+    with multiprocessing.Pool(processes=min(4, len(filtered_mappings))) as pool:
+        try:
+            # Use imap to get results as they complete, applying process_func with mapping_dict as the only variable argument
+            for result in pool.imap_unordered(process_func, filtered_mappings):
+                if time.time() - start_time > timeout:
+                    pool.terminate()
+                    pool.join()
+                    return None
+                if result is not None:
+                    # If a valid mapping is found, terminate all processes and return the result
+                    pool.terminate()
+                    pool.join()
+                    return result
+        except Exception as e:
+            pool.terminate()
+            pool.join()
+            logger.error(f"Error occurred during model matching: {e}")
+        finally:
+            pool.close()
+            pool.join()
+    return None
+
+
+def match_graphs(model_graph, global_graph, global_symbols=None, init_solutions=None, timeout=20):
     """
     Use VF3 algorithm to match two graphs and verify the constraints.
     """
-
-    def is_constraints_valid(_model_graph):
-        """
-        Check if model_graph has valid mathematical constraints.
-        """
-        return _model_graph.constraints is not None and _model_graph.constraints != ""
-
-    def is_visual_constraints_valid(_model_graph):
-        """
-        Check if model_graph has valid visual constraints.
-        """
-        return _model_graph.visual_constraints is not None and _model_graph.visual_constraints != ""
 
     mapping_dict_list = []
 
@@ -454,29 +508,13 @@ def match_graphs(model_graph, global_graph, global_symbols=None, init_solutions=
         visual_constraints_valid = is_visual_constraints_valid(model_graph)
         if constraints_valid or visual_constraints_valid:
             grouped_list = group_by_id_sets(solution)
+            start_time = time.time()
             for group in grouped_list:
-                parsed_mappings = []
-                for s in group:
-                    mapping_dict = parse_mapping(model_graph, global_graph, s)
-                    parsed_mappings.append(mapping_dict)
-
-                filtered_mappings = filter_mappings(parsed_mappings, model_graph.fixed_nodes) \
-                    if len(model_graph.fixed_nodes) > 0 else parsed_mappings
-                for mapping_dict in filtered_mappings:
-                    # Check visual constraints, validate them if they are valid, otherwise default to True
-                    visual_constraints_flag = (not is_visual_constraints_valid(model_graph) or
-                                               verify_visual_constraints(model_graph, global_graph, mapping_dict,
-                                                                         global_symbols))
-
-                    if visual_constraints_flag:
-                        # Check mathematical constraints, validate them if they are valid, otherwise default to True
-                        constraints_flag = (not is_constraints_valid(model_graph) or
-                                            verify_constraints(model_graph, global_graph, mapping_dict, global_symbols,
-                                                               init_solutions))
-                        # If both flags are True, add to the list and exit the current loop
-                        if constraints_flag:
-                            mapping_dict_list.append(mapping_dict)
-                            break
+                mapping_dict_result = parallel_process(group, model_graph, global_graph, global_symbols, init_solutions)
+                if mapping_dict_result:
+                    mapping_dict_list.append(mapping_dict_result)
+                if time.time() - start_time > timeout:
+                    return mapping_dict_list
         else:
             solution = filter_duplicates(solution)
             for s in solution:

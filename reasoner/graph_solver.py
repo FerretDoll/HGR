@@ -1,5 +1,6 @@
 import concurrent.futures
 import json
+import multiprocessing
 from itertools import combinations, islice
 
 from func_timeout import func_timeout, FunctionTimedOut
@@ -612,12 +613,7 @@ class GraphSolver:
         new_equations = []
         model_used = False
         instances = []
-        try:
-            mapping_dict_list = func_timeout(10, match_graphs, args=(model, self.global_graph, self.symbols,
-                                                                     self.init_solutions))
-        except FunctionTimedOut:
-            logger.error("Timeout when matching the model.")
-            return new_actions, new_equations
+        mapping_dict_list = match_graphs(model, self.global_graph, self.symbols, self.init_solutions)
         for mapping_dict in mapping_dict_list:
             relation = model.generate_relation(mapping_dict)
             if relation not in self.matched_relations:

@@ -2814,9 +2814,9 @@
   "Triangle_Similar_Prove_1": {
     "id": 13,
     "relation": "Similar_Prove($triangle_1,$triangle_2)",
-    "constraints": "(line_1 / line_3 = line_2 / line_5 AND line_2 / line_5 = line_3 / line_4) OR (angle_1 = angle_4 AND angle_2 = angle_5) OR (angle_1 = angle_4 AND line_2 / line_4 = line_3 / line_5) OR (angle_1 = pi / 2 AND angle_4 = pi / 2 AND line_1 / line_6 = line_2 / line_4)",
+    "constraints": "(line_1 / line_3 = line_2 / line_5 AND line_2 / line_5 = line_3 / line_4) OR (angle_1 = angle_4 AND angle_2 = angle_5) OR (angle_1 = angle_4 AND line_2 / line_4 = line_3 / line_5) OR ((angle_1 = pi / 2 OR angle_2 = pi / 2 OR angle_3 = pi / 2) AND (angle_4 = pi / 2 OR angle_5 = pi / 2 OR angle_6 = pi / 2) AND (line_1 / line_6 = line_2 / line_4 OR line_1 / line_6 = line_3/ line_4 ))",
     "visual_constraints": "",
-    "fixed_nodes": ["triangle_1", "triangle_2"],
+    "fixed_nodes": ["triangle_1", "triangle_2", "line_1", "line_2", "line_3", "angle_1", "angle_2", "angle_3"],
     "actions": [
       {
         "type": "add_edge",

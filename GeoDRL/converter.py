@@ -771,6 +771,10 @@ def Logic2Graph(logic, target):
                 target_node.append(t)
 
     target_equation = create_sympy_equation(logic, target)
+    equation_symbols = {str(symbol) for symbol in target_equation.free_symbols}
+    diff_symbols = equation_symbols - set(target_node)
+    target_node.extend(diff_symbols & set(node))
+
     x = var()
     y = var()
     res = run(0, (x, y), logic.Equation(x, y))
