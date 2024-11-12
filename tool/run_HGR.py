@@ -343,7 +343,7 @@ if __name__ == "__main__":
     # evaluate_all_questions(2401, 3001)
 
     try:
-        q_id = 2440
+        q_id = 2456
 
         # Test and answer single questions
         test_one_question(q_id)
@@ -354,7 +354,7 @@ if __name__ == "__main__":
         # Draw a global map
         # test_draw_global_graph(q_id)
 
-        # test_solve_with_model_sequence(q_id, [1, 2, 3, 25, 27, 54, 58, 16, 20])
+        # test_solve_with_model_sequence(q_id, [2, 66])
     except argparse.ArgumentError:
         logger.error("Error: question id is required")
         sys.exit(1)

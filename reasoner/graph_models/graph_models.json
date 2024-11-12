@@ -2818,7 +2818,16 @@
     "relation": "Similar_Prove($triangle_1,$triangle_2)",
     "constraints": "(line_1 / line_3 = line_2 / line_5 AND line_2 / line_5 = line_3 / line_4) OR (angle_1 = angle_4 AND angle_2 = angle_5) OR (angle_1 = angle_4 AND line_2 / line_4 = line_3 / line_5) OR ((angle_1 = pi / 2 OR angle_2 = pi / 2 OR angle_3 = pi / 2) AND (angle_4 = pi / 2 OR angle_5 = pi / 2 OR angle_6 = pi / 2) AND (line_1 / line_6 = line_2 / line_4 OR line_1 / line_6 = line_3/ line_4 ))",
     "visual_constraints": "",
-    "fixed_nodes": ["triangle_1", "triangle_2", "line_1", "line_2", "line_3", "angle_1", "angle_2", "angle_3"],
+    "fixed_nodes": [
+      "triangle_1",
+      "triangle_2",
+      "line_1",
+      "line_2",
+      "line_3",
+      "angle_1",
+      "angle_2",
+      "angle_3"
+    ],
     "actions": [
       {
         "type": "add_edge",
@@ -5847,7 +5856,9 @@
     "relation": "Equals(Add(MeasureOf($angle_1),MeasureOf($angle_2)),pi)",
     "constraints": "angle_1 + angle_2 = pi",
     "visual_constraints": "line_1 || line_2",
-    "fixed_nodes": [],
+    "fixed_nodes": [
+      "line_1"
+    ],
     "actions": [
       {
         "type": "add_edge",
@@ -7675,331 +7686,234 @@
     ],
     "grf_data": "16\n0 7\n1 2\n2 2\n3 2\n4 1\n5 1\n6 2\n7 2\n8 2\n9 2\n10 2\n11 2\n12 3\n13 3\n14 3\n15 3\n0\n2\n1 0 13\n1 12 15\n4\n2 0 13\n2 1 4\n2 15 15\n2 14 15\n0\n5\n4 3 11\n4 7 7\n4 5 1\n4 13 12\n4 15 12\n6\n5 3 11\n5 6 7\n5 10 11\n5 11 11\n5 12 12\n5 14 12\n2\n6 0 13\n6 14 15\n2\n7 0 13\n7 15 15\n2\n8 4 11\n8 13 15\n2\n9 4 11\n9 15 15\n1\n10 14 15\n1\n11 12 15\n2\n12 0 10\n12 6 15\n3\n13 0 10\n13 1 15\n13 7 15\n1\n14 0 10\n1\n15 0 10\n"
   },
-  "Circle_Anglesum_1": {
-    "id": 34,
-    "relation": "Equals(Add(MeasureOf($angle_1),MeasureOf($angle_2),MeasureOf($angle_3)),2*pi)",
-    "constraints": "",
-    "visual_constraints": "angle_1 + angle_2 + angle_3 = 2 * pi",
-    "fixed_nodes": [],
+  "Perpendicular_Bisector_Chord": {
+    "id": 66,
+    "relation": "Equals(LengthOf($line_ad),LengthOf($line_cd))",
+    "constraints": "angle_bdc = pi / 2 AND angle_adb = pi / 2",
+    "visual_constraints": "",
+    "fixed_nodes": [
+      "angle_bdc",
+      "angle_adb"
+    ],
     "actions": [],
     "equations": [
-      "angle_1 + angle_2 + angle_3 = 2 * pi"
+      "line_ad = line_cd"
     ],
     "node_types": {
+      "1": 4,
       "5": 1,
       "2": 3,
-      "3": 3,
-      "1": 1
+      "3": 2
     },
     "edge_types": {
+      "1": 6,
       "9": 1,
-      "14": 3,
-      "15": 6,
-      "11": 3
+      "8": 2,
+      "11": 6,
+      "12": 4,
+      "15": 2,
+      "14": 2,
+      "7": 1
     },
     "nodes": [
       {
         "id": "n1",
-        "name": "circle_a",
-        "type": "Circle"
-      },
-      {
-        "id": "n2",
-        "name": "line_1",
-        "type": "Line"
-      },
-      {
-        "id": "n3",
-        "name": "line_2",
-        "type": "Line"
-      },
-      {
-        "id": "n4",
-        "name": "line_3",
-        "type": "Line"
-      },
-      {
-        "id": "n5",
-        "name": "angle_1",
-        "type": "Angle"
-      },
-      {
-        "id": "n6",
-        "name": "angle_2",
-        "type": "Angle"
-      },
-      {
-        "id": "n7",
         "name": "a",
         "type": "Point"
       },
       {
-        "id": "n8",
-        "name": "angle_3",
-        "type": "Angle"
-      }
-    ],
-    "edges": [
-      {
-        "id": "e1",
-        "source": "n7",
-        "target": "n1",
-        "type": "Center"
-      },
-      {
-        "id": "e2",
-        "source": "n6",
-        "target": "n7",
-        "type": "Vertex"
-      },
-      {
-        "id": "e3",
-        "source": "n5",
-        "target": "n7",
-        "type": "Vertex"
-      },
-      {
-        "id": "e4",
-        "source": "n8",
-        "target": "n7",
-        "type": "Vertex"
-      },
-      {
-        "id": "e5",
-        "source": "n8",
-        "target": "n4",
-        "type": "AngleSide"
-      },
-      {
-        "id": "e6",
-        "source": "n8",
-        "target": "n3",
-        "type": "AngleSide"
-      },
-      {
-        "id": "e7",
-        "source": "n5",
-        "target": "n2",
-        "type": "AngleSide"
-      },
-      {
-        "id": "e8",
-        "source": "n5",
-        "target": "n3",
-        "type": "AngleSide"
-      },
-      {
-        "id": "e9",
-        "source": "n6",
-        "target": "n2",
-        "type": "AngleSide"
-      },
-      {
-        "id": "e10",
-        "source": "n6",
-        "target": "n4",
-        "type": "AngleSide"
-      },
-      {
-        "id": "e11",
-        "source": "n7",
-        "target": "n2",
-        "type": "Endpoint"
-      },
-      {
-        "id": "e12",
-        "source": "n7",
-        "target": "n3",
-        "type": "Endpoint"
-      },
-      {
-        "id": "e13",
-        "source": "n7",
-        "target": "n4",
-        "type": "Endpoint"
-      }
-    ],
-    "grf_data": "8\n0 5\n1 2\n2 2\n3 2\n4 3\n5 3\n6 1\n7 3\n0\n0\n0\n0\n3\n4 6 14\n4 1 15\n4 2 15\n3\n5 6 14\n5 1 15\n5 3 15\n4\n6 0 9\n6 1 11\n6 2 11\n6 3 11\n3\n7 6 14\n7 3 15\n7 2 15\n"
-  },
-  "Circle_Anglesum_2": {
-    "id": 35,
-    "relation": "Equals(Add(MeasureOf($angle_1),MeasureOf($angle_2),MeasureOf($angle_3),MeasureOf($angle_4)),2*pi)",
-    "constraints": "",
-    "visual_constraints": "angle_1 + angle_2 + angle_3 + angle_4 = 2 * pi",
-    "fixed_nodes": [],
-    "actions": [],
-    "equations": [
-      "angle_1 + angle_2 + angle_3 + angle_4 = 2 * pi"
-    ],
-    "node_types": {
-      "5": 1,
-      "2": 4,
-      "3": 4,
-      "1": 1
-    },
-    "edge_types": {
-      "9": 1,
-      "14": 4,
-      "15": 8,
-      "11": 4
-    },
-    "nodes": [
-      {
-        "id": "n1",
-        "name": "circle_a",
-        "type": "Circle"
-      },
-      {
         "id": "n2",
-        "name": "line_1",
-        "type": "Line"
-      },
-      {
-        "id": "n3",
-        "name": "line_2",
-        "type": "Line"
-      },
-      {
-        "id": "n4",
-        "name": "line_3",
-        "type": "Line"
-      },
-      {
-        "id": "n5",
-        "name": "angle_1",
-        "type": "Angle"
-      },
-      {
-        "id": "n6",
-        "name": "angle_2",
-        "type": "Angle"
-      },
-      {
-        "id": "n7",
-        "name": "a",
+        "name": "b",
         "type": "Point"
       },
       {
-        "id": "n8",
-        "name": "angle_3",
+        "id": "n3",
+        "name": "c",
+        "type": "Point"
+      },
+      {
+        "id": "n4",
+        "name": "circle_b",
+        "type": "Circle"
+      },
+      {
+        "id": "n5",
+        "name": "line_cd",
+        "type": "Line"
+      },
+      {
+        "id": "n6",
+        "name": "line_ad",
+        "type": "Line"
+      },
+      {
+        "id": "n7",
+        "name": "angle_bdc",
         "type": "Angle"
+      },
+      {
+        "id": "n8",
+        "name": "d",
+        "type": "Point"
       },
       {
         "id": "n9",
-        "name": "line_4",
+        "name": "line_ac",
         "type": "Line"
       },
       {
         "id": "n10",
-        "name": "angle_4",
+        "name": "angle_adb",
         "type": "Angle"
       }
     ],
     "edges": [
       {
         "id": "e1",
-        "source": "n7",
+        "source": "n3",
         "target": "n1",
-        "type": "Center"
+        "type": "Connected"
       },
       {
         "id": "e2",
-        "source": "n6",
-        "target": "n7",
-        "type": "Vertex"
+        "source": "n1",
+        "target": "n2",
+        "type": "Connected"
       },
       {
         "id": "e3",
-        "source": "n5",
-        "target": "n7",
-        "type": "Vertex"
+        "source": "n2",
+        "target": "n3",
+        "type": "Connected"
       },
       {
         "id": "e4",
-        "source": "n8",
-        "target": "n7",
-        "type": "Vertex"
+        "source": "n2",
+        "target": "n4",
+        "type": "Center"
       },
       {
         "id": "e5",
-        "source": "n8",
+        "source": "n1",
         "target": "n4",
-        "type": "AngleSide"
+        "type": "LiesOnCircle"
       },
       {
         "id": "e6",
-        "source": "n8",
+        "source": "n4",
         "target": "n3",
-        "type": "AngleSide"
+        "type": "LiesOnCircle"
       },
       {
         "id": "e7",
-        "source": "n5",
-        "target": "n2",
-        "type": "AngleSide"
+        "source": "n6",
+        "target": "n1",
+        "type": "Endpoint"
       },
       {
         "id": "e8",
         "source": "n5",
         "target": "n3",
-        "type": "AngleSide"
+        "type": "Endpoint"
       },
       {
         "id": "e9",
-        "source": "n6",
+        "source": "n7",
         "target": "n2",
-        "type": "AngleSide"
+        "type": "Sidepoint"
       },
       {
         "id": "e10",
-        "source": "n9",
-        "target": "n7",
-        "type": "Endpoint"
+        "source": "n7",
+        "target": "n3",
+        "type": "Sidepoint"
       },
       {
         "id": "e11",
-        "source": "n7",
-        "target": "n2",
-        "type": "Endpoint"
-      },
-      {
-        "id": "e12",
-        "source": "n7",
-        "target": "n3",
-        "type": "Endpoint"
-      },
-      {
-        "id": "e13",
-        "source": "n7",
-        "target": "n4",
-        "type": "Endpoint"
-      },
-      {
-        "id": "e14",
-        "source": "n6",
-        "target": "n9",
+        "source": "n5",
+        "target": "n7",
         "type": "AngleSide"
       },
       {
+        "id": "e12",
+        "source": "n8",
+        "target": "n2",
+        "type": "Connected"
+      },
+      {
+        "id": "e13",
+        "source": "n8",
+        "target": "n1",
+        "type": "Connected"
+      },
+      {
+        "id": "e14",
+        "source": "n8",
+        "target": "n3",
+        "type": "Connected"
+      },
+      {
         "id": "e15",
-        "source": "n10",
+        "source": "n8",
         "target": "n7",
         "type": "Vertex"
       },
       {
         "id": "e16",
-        "source": "n10",
-        "target": "n9",
-        "type": "AngleSide"
+        "source": "n6",
+        "target": "n8",
+        "type": "Endpoint"
       },
       {
         "id": "e17",
+        "source": "n8",
+        "target": "n5",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e18",
+        "source": "n9",
+        "target": "n1",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e19",
+        "source": "n9",
+        "target": "n3",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e20",
+        "source": "n8",
+        "target": "n9",
+        "type": "LiesOnLine"
+      },
+      {
+        "id": "e21",
         "source": "n10",
-        "target": "n4",
+        "target": "n8",
+        "type": "Vertex"
+      },
+      {
+        "id": "e22",
+        "source": "n10",
+        "target": "n6",
         "type": "AngleSide"
+      },
+      {
+        "id": "e23",
+        "source": "n1",
+        "target": "n10",
+        "type": "Sidepoint"
+      },
+      {
+        "id": "e24",
+        "source": "n10",
+        "target": "n2",
+        "type": "Sidepoint"
       }
     ],
-    "grf_data": "10\n0 5\n1 2\n2 2\n3 2\n4 3\n5 3\n6 1\n7 3\n8 2\n9 3\n0\n0\n0\n0\n3\n4 6 14\n4 1 15\n4 2 15\n3\n5 6 14\n5 1 15\n5 8 15\n4\n6 0 9\n6 1 11\n6 2 11\n6 3 11\n3\n7 6 14\n7 3 15\n7 2 15\n1\n8 6 11\n3\n9 6 14\n9 8 15\n9 3 15\n"
+    "grf_data": "10\n0 1\n1 1\n2 1\n3 5\n4 2\n5 2\n6 3\n7 1\n8 2\n9 3\n3\n0 1 1\n0 3 8\n0 9 12\n2\n1 2 1\n1 3 9\n1\n2 0 1\n1\n3 2 8\n2\n4 2 11\n4 6 15\n2\n5 0 11\n5 7 11\n2\n6 1 12\n6 2 12\n6\n7 1 1\n7 0 1\n7 2 1\n7 6 14\n7 4 11\n7 8 7\n2\n8 0 11\n8 2 11\n3\n9 7 14\n9 5 15\n9 1 12\n"
   },
   "Chord_Theorem_1": {
     "id": 36,
@@ -8468,234 +8382,6 @@
       }
     ],
     "grf_data": "12\n0 1\n1 1\n2 1\n3 1\n4 5\n5 2\n6 2\n7 2\n8 2\n9 1\n10 2\n11 2\n2\n0 4 8\n0 1 1\n3\n1 4 8\n1 7 11\n1 2 1\n1\n2 3 1\n0\n2\n4 2 8\n4 3 8\n2\n5 3 11\n5 9 11\n2\n6 2 11\n6 3 11\n1\n7 9 11\n2\n8 0 11\n8 9 11\n6\n9 0 1\n9 1 1\n9 3 1\n9 2 1\n9 10 7\n9 6 7\n2\n10 0 11\n10 1 11\n2\n11 9 11\n11 2 11\n"
-  },
-  "Circle_Radius_Equal_1": {
-    "id": 38,
-    "relation": "Equals(LengthOf($line_ac),LengthOf($line_ab))",
-    "constraints": "",
-    "visual_constraints": "",
-    "fixed_nodes": [],
-    "actions": [],
-    "equations": [
-      "line_ac = line_ab"
-    ],
-    "node_types": {
-      "5": 1,
-      "1": 3,
-      "2": 2
-    },
-    "edge_types": {
-      "8": 2,
-      "9": 1,
-      "1": 2,
-      "11": 4
-    },
-    "nodes": [
-      {
-        "id": "n1",
-        "name": "circle_a",
-        "type": "Circle"
-      },
-      {
-        "id": "n2",
-        "name": "a",
-        "type": "Point"
-      },
-      {
-        "id": "n3",
-        "name": "b",
-        "type": "Point"
-      },
-      {
-        "id": "n4",
-        "name": "c",
-        "type": "Point"
-      },
-      {
-        "id": "n5",
-        "name": "line_ac",
-        "type": "Line"
-      },
-      {
-        "id": "n6",
-        "name": "line_ab",
-        "type": "Line"
-      }
-    ],
-    "edges": [
-      {
-        "id": "e1",
-        "source": "n3",
-        "target": "n1",
-        "type": "LiesOnCircle"
-      },
-      {
-        "id": "e2",
-        "source": "n2",
-        "target": "n1",
-        "type": "Center"
-      },
-      {
-        "id": "e3",
-        "source": "n4",
-        "target": "n1",
-        "type": "LiesOnCircle"
-      },
-      {
-        "id": "e4",
-        "source": "n4",
-        "target": "n2",
-        "type": "Connected"
-      },
-      {
-        "id": "e5",
-        "source": "n3",
-        "target": "n2",
-        "type": "Connected"
-      },
-      {
-        "id": "e6",
-        "source": "n5",
-        "target": "n4",
-        "type": "Endpoint"
-      },
-      {
-        "id": "e7",
-        "source": "n5",
-        "target": "n2",
-        "type": "Endpoint"
-      },
-      {
-        "id": "e8",
-        "source": "n6",
-        "target": "n2",
-        "type": "Endpoint"
-      },
-      {
-        "id": "e9",
-        "source": "n6",
-        "target": "n3",
-        "type": "Endpoint"
-      }
-    ],
-    "grf_data": "6\n0 5\n1 1\n2 1\n3 1\n4 2\n5 2\n0\n1\n1 0 9\n2\n2 0 8\n2 1 1\n2\n3 0 8\n3 1 1\n2\n4 3 11\n4 1 11\n2\n5 1 11\n5 2 11\n"
-  },
-  "Circle_Radius_Equal_2": {
-    "id": 39,
-    "relation": "Equals(LengthOf($line_ac),LengthOf($line_ab))",
-    "constraints": "",
-    "visual_constraints": "",
-    "fixed_nodes": [],
-    "actions": [],
-    "equations": [
-      "line_ac = line_ab"
-    ],
-    "node_types": {
-      "5": 1,
-      "1": 3,
-      "2": 2
-    },
-    "edge_types": {
-      "8": 2,
-      "9": 1,
-      "1": 3,
-      "11": 4
-    },
-    "nodes": [
-      {
-        "id": "n1",
-        "name": "circle_a",
-        "type": "Circle"
-      },
-      {
-        "id": "n2",
-        "name": "a",
-        "type": "Point"
-      },
-      {
-        "id": "n3",
-        "name": "b",
-        "type": "Point"
-      },
-      {
-        "id": "n4",
-        "name": "c",
-        "type": "Point"
-      },
-      {
-        "id": "n5",
-        "name": "line_ac",
-        "type": "Line"
-      },
-      {
-        "id": "n6",
-        "name": "line_ab",
-        "type": "Line"
-      }
-    ],
-    "edges": [
-      {
-        "id": "e1",
-        "source": "n3",
-        "target": "n1",
-        "type": "LiesOnCircle"
-      },
-      {
-        "id": "e2",
-        "source": "n2",
-        "target": "n1",
-        "type": "Center"
-      },
-      {
-        "id": "e3",
-        "source": "n4",
-        "target": "n1",
-        "type": "LiesOnCircle"
-      },
-      {
-        "id": "e4",
-        "source": "n4",
-        "target": "n2",
-        "type": "Connected"
-      },
-      {
-        "id": "e5",
-        "source": "n3",
-        "target": "n2",
-        "type": "Connected"
-      },
-      {
-        "id": "e6",
-        "source": "n5",
-        "target": "n4",
-        "type": "Endpoint"
-      },
-      {
-        "id": "e7",
-        "source": "n5",
-        "target": "n2",
-        "type": "Endpoint"
-      },
-      {
-        "id": "e8",
-        "source": "n6",
-        "target": "n2",
-        "type": "Endpoint"
-      },
-      {
-        "id": "e9",
-        "source": "n6",
-        "target": "n3",
-        "type": "Endpoint"
-      },
-      {
-        "id": "e10",
-        "source": "n4",
-        "target": "n3",
-        "type": "Connected"
-      }
-    ],
-    "grf_data": "6\n0 5\n1 1\n2 1\n3 1\n4 2\n5 2\n0\n1\n1 0 9\n2\n2 0 8\n2 1 1\n3\n3 0 8\n3 1 1\n3 2 1\n2\n4 3 11\n4 1 11\n2\n5 1 11\n5 2 11\n"
   },
   "Equal_Chords_Theorem_1": {
     "id": 40,
@@ -11315,6 +11001,560 @@
       }
     ],
     "grf_data": "8\n0 5\n1 1\n2 1\n3 2\n4 4\n5 1\n6 1\n7 3\n1\n0 2 8\n2\n1 0 8\n1 2 1\n1\n2 5 1\n3\n3 5 7\n3 1 11\n3 2 11\n3\n4 3 13\n4 1 14\n4 2 14\n2\n5 0 9\n5 1 1\n5\n6 4 14\n6 0 8\n6 1 1\n6 2 1\n6 5 1\n4\n7 6 14\n7 1 12\n7 2 12\n7 4 10\n"
+  },
+  "Circle_Radius_Equal_1": {
+    "id": 38,
+    "relation": "Equals(LengthOf($line_ac),LengthOf($line_ab))",
+    "constraints": "",
+    "visual_constraints": "",
+    "fixed_nodes": [],
+    "actions": [],
+    "equations": [
+      "line_ac = line_ab"
+    ],
+    "node_types": {
+      "5": 1,
+      "1": 3,
+      "2": 2
+    },
+    "edge_types": {
+      "8": 2,
+      "9": 1,
+      "1": 2,
+      "11": 4
+    },
+    "nodes": [
+      {
+        "id": "n1",
+        "name": "circle_a",
+        "type": "Circle"
+      },
+      {
+        "id": "n2",
+        "name": "a",
+        "type": "Point"
+      },
+      {
+        "id": "n3",
+        "name": "b",
+        "type": "Point"
+      },
+      {
+        "id": "n4",
+        "name": "c",
+        "type": "Point"
+      },
+      {
+        "id": "n5",
+        "name": "line_ac",
+        "type": "Line"
+      },
+      {
+        "id": "n6",
+        "name": "line_ab",
+        "type": "Line"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "n3",
+        "target": "n1",
+        "type": "LiesOnCircle"
+      },
+      {
+        "id": "e2",
+        "source": "n2",
+        "target": "n1",
+        "type": "Center"
+      },
+      {
+        "id": "e3",
+        "source": "n4",
+        "target": "n1",
+        "type": "LiesOnCircle"
+      },
+      {
+        "id": "e4",
+        "source": "n4",
+        "target": "n2",
+        "type": "Connected"
+      },
+      {
+        "id": "e5",
+        "source": "n3",
+        "target": "n2",
+        "type": "Connected"
+      },
+      {
+        "id": "e6",
+        "source": "n5",
+        "target": "n4",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e7",
+        "source": "n5",
+        "target": "n2",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e8",
+        "source": "n6",
+        "target": "n2",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e9",
+        "source": "n6",
+        "target": "n3",
+        "type": "Endpoint"
+      }
+    ],
+    "grf_data": "6\n0 5\n1 1\n2 1\n3 1\n4 2\n5 2\n0\n1\n1 0 9\n2\n2 0 8\n2 1 1\n2\n3 0 8\n3 1 1\n2\n4 3 11\n4 1 11\n2\n5 1 11\n5 2 11\n"
+  },
+  "Circle_Radius_Equal_2": {
+    "id": 39,
+    "relation": "Equals(LengthOf($line_ac),LengthOf($line_ab))",
+    "constraints": "",
+    "visual_constraints": "",
+    "fixed_nodes": [],
+    "actions": [],
+    "equations": [
+      "line_ac = line_ab"
+    ],
+    "node_types": {
+      "5": 1,
+      "1": 3,
+      "2": 2
+    },
+    "edge_types": {
+      "8": 2,
+      "9": 1,
+      "1": 3,
+      "11": 4
+    },
+    "nodes": [
+      {
+        "id": "n1",
+        "name": "circle_a",
+        "type": "Circle"
+      },
+      {
+        "id": "n2",
+        "name": "a",
+        "type": "Point"
+      },
+      {
+        "id": "n3",
+        "name": "b",
+        "type": "Point"
+      },
+      {
+        "id": "n4",
+        "name": "c",
+        "type": "Point"
+      },
+      {
+        "id": "n5",
+        "name": "line_ac",
+        "type": "Line"
+      },
+      {
+        "id": "n6",
+        "name": "line_ab",
+        "type": "Line"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "n3",
+        "target": "n1",
+        "type": "LiesOnCircle"
+      },
+      {
+        "id": "e2",
+        "source": "n2",
+        "target": "n1",
+        "type": "Center"
+      },
+      {
+        "id": "e3",
+        "source": "n4",
+        "target": "n1",
+        "type": "LiesOnCircle"
+      },
+      {
+        "id": "e4",
+        "source": "n4",
+        "target": "n2",
+        "type": "Connected"
+      },
+      {
+        "id": "e5",
+        "source": "n3",
+        "target": "n2",
+        "type": "Connected"
+      },
+      {
+        "id": "e6",
+        "source": "n5",
+        "target": "n4",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e7",
+        "source": "n5",
+        "target": "n2",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e8",
+        "source": "n6",
+        "target": "n2",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e9",
+        "source": "n6",
+        "target": "n3",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e10",
+        "source": "n4",
+        "target": "n3",
+        "type": "Connected"
+      }
+    ],
+    "grf_data": "6\n0 5\n1 1\n2 1\n3 1\n4 2\n5 2\n0\n1\n1 0 9\n2\n2 0 8\n2 1 1\n3\n3 0 8\n3 1 1\n3 2 1\n2\n4 3 11\n4 1 11\n2\n5 1 11\n5 2 11\n"
+  },
+  "Circle_Anglesum_1": {
+    "id": 34,
+    "relation": "Equals(Add(MeasureOf($angle_1),MeasureOf($angle_2),MeasureOf($angle_3)),2*pi)",
+    "constraints": "",
+    "visual_constraints": "angle_1 + angle_2 + angle_3 = 2 * pi",
+    "fixed_nodes": [],
+    "actions": [],
+    "equations": [
+      "angle_1 + angle_2 + angle_3 = 2 * pi"
+    ],
+    "node_types": {
+      "5": 1,
+      "2": 3,
+      "3": 3,
+      "1": 1
+    },
+    "edge_types": {
+      "9": 1,
+      "14": 3,
+      "15": 6,
+      "11": 3
+    },
+    "nodes": [
+      {
+        "id": "n1",
+        "name": "circle_a",
+        "type": "Circle"
+      },
+      {
+        "id": "n2",
+        "name": "line_1",
+        "type": "Line"
+      },
+      {
+        "id": "n3",
+        "name": "line_2",
+        "type": "Line"
+      },
+      {
+        "id": "n4",
+        "name": "line_3",
+        "type": "Line"
+      },
+      {
+        "id": "n5",
+        "name": "angle_1",
+        "type": "Angle"
+      },
+      {
+        "id": "n6",
+        "name": "angle_2",
+        "type": "Angle"
+      },
+      {
+        "id": "n7",
+        "name": "a",
+        "type": "Point"
+      },
+      {
+        "id": "n8",
+        "name": "angle_3",
+        "type": "Angle"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "n7",
+        "target": "n1",
+        "type": "Center"
+      },
+      {
+        "id": "e2",
+        "source": "n6",
+        "target": "n7",
+        "type": "Vertex"
+      },
+      {
+        "id": "e3",
+        "source": "n5",
+        "target": "n7",
+        "type": "Vertex"
+      },
+      {
+        "id": "e4",
+        "source": "n8",
+        "target": "n7",
+        "type": "Vertex"
+      },
+      {
+        "id": "e5",
+        "source": "n8",
+        "target": "n4",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e6",
+        "source": "n8",
+        "target": "n3",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e7",
+        "source": "n5",
+        "target": "n2",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e8",
+        "source": "n5",
+        "target": "n3",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e9",
+        "source": "n6",
+        "target": "n2",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e10",
+        "source": "n6",
+        "target": "n4",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e11",
+        "source": "n7",
+        "target": "n2",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e12",
+        "source": "n7",
+        "target": "n3",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e13",
+        "source": "n7",
+        "target": "n4",
+        "type": "Endpoint"
+      }
+    ],
+    "grf_data": "8\n0 5\n1 2\n2 2\n3 2\n4 3\n5 3\n6 1\n7 3\n0\n0\n0\n0\n3\n4 6 14\n4 1 15\n4 2 15\n3\n5 6 14\n5 1 15\n5 3 15\n4\n6 0 9\n6 1 11\n6 2 11\n6 3 11\n3\n7 6 14\n7 3 15\n7 2 15\n"
+  },
+  "Circle_Anglesum_2": {
+    "id": 35,
+    "relation": "Equals(Add(MeasureOf($angle_1),MeasureOf($angle_2),MeasureOf($angle_3),MeasureOf($angle_4)),2*pi)",
+    "constraints": "",
+    "visual_constraints": "angle_1 + angle_2 + angle_3 + angle_4 = 2 * pi",
+    "fixed_nodes": [],
+    "actions": [],
+    "equations": [
+      "angle_1 + angle_2 + angle_3 + angle_4 = 2 * pi"
+    ],
+    "node_types": {
+      "5": 1,
+      "2": 4,
+      "3": 4,
+      "1": 1
+    },
+    "edge_types": {
+      "9": 1,
+      "14": 4,
+      "15": 8,
+      "11": 4
+    },
+    "nodes": [
+      {
+        "id": "n1",
+        "name": "circle_a",
+        "type": "Circle"
+      },
+      {
+        "id": "n2",
+        "name": "line_1",
+        "type": "Line"
+      },
+      {
+        "id": "n3",
+        "name": "line_2",
+        "type": "Line"
+      },
+      {
+        "id": "n4",
+        "name": "line_3",
+        "type": "Line"
+      },
+      {
+        "id": "n5",
+        "name": "angle_1",
+        "type": "Angle"
+      },
+      {
+        "id": "n6",
+        "name": "angle_2",
+        "type": "Angle"
+      },
+      {
+        "id": "n7",
+        "name": "a",
+        "type": "Point"
+      },
+      {
+        "id": "n8",
+        "name": "angle_3",
+        "type": "Angle"
+      },
+      {
+        "id": "n9",
+        "name": "line_4",
+        "type": "Line"
+      },
+      {
+        "id": "n10",
+        "name": "angle_4",
+        "type": "Angle"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "n7",
+        "target": "n1",
+        "type": "Center"
+      },
+      {
+        "id": "e2",
+        "source": "n6",
+        "target": "n7",
+        "type": "Vertex"
+      },
+      {
+        "id": "e3",
+        "source": "n5",
+        "target": "n7",
+        "type": "Vertex"
+      },
+      {
+        "id": "e4",
+        "source": "n8",
+        "target": "n7",
+        "type": "Vertex"
+      },
+      {
+        "id": "e5",
+        "source": "n8",
+        "target": "n4",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e6",
+        "source": "n8",
+        "target": "n3",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e7",
+        "source": "n5",
+        "target": "n2",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e8",
+        "source": "n5",
+        "target": "n3",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e9",
+        "source": "n6",
+        "target": "n2",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e10",
+        "source": "n9",
+        "target": "n7",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e11",
+        "source": "n7",
+        "target": "n2",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e12",
+        "source": "n7",
+        "target": "n3",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e13",
+        "source": "n7",
+        "target": "n4",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e14",
+        "source": "n6",
+        "target": "n9",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e15",
+        "source": "n10",
+        "target": "n7",
+        "type": "Vertex"
+      },
+      {
+        "id": "e16",
+        "source": "n10",
+        "target": "n9",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e17",
+        "source": "n10",
+        "target": "n4",
+        "type": "AngleSide"
+      }
+    ],
+    "grf_data": "10\n0 5\n1 2\n2 2\n3 2\n4 3\n5 3\n6 1\n7 3\n8 2\n9 3\n0\n0\n0\n0\n3\n4 6 14\n4 1 15\n4 2 15\n3\n5 6 14\n5 1 15\n5 8 15\n4\n6 0 9\n6 1 11\n6 2 11\n6 3 11\n3\n7 6 14\n7 3 15\n7 2 15\n1\n8 6 11\n3\n9 6 14\n9 8 15\n9 3 15\n"
   },
   "Circle_Area_Theorem": {
     "id": 51,

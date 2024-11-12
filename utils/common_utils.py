@@ -314,7 +314,8 @@ def findAlgebra(lst):
 
 def sort_angle(angle):
     assert len(angle) == 3
-    if angle[0] > angle[2]: return angle[::-1]
+    if angle[0] > angle[2]:
+        return angle[::-1]
     return angle
 
 
@@ -383,3 +384,15 @@ def calc_angle_measure(angle, point_positions, is_rad=False):
     line1 = (angle[1], angle[0])
     line2 = (angle[1], angle[2])
     return calc_cross_angle(line1, line2, point_positions, is_rad)
+
+
+def is_collinear_lines(line1, line2, point_positions, epsilon=10):
+    x1, y1 = point_positions[line1[0]]
+    x2, y2 = point_positions[line1[1]]
+    x3, y3 = point_positions[line2[0]]
+    x4, y4 = point_positions[line2[1]]
+
+    cross_product1 = (x2 - x1) * (y3 - y1) - (y2 - y1) * (x3 - x1)
+    cross_product2 = (x2 - x1) * (y4 - y1) - (y2 - y1) * (x4 - x1)
+
+    return abs(cross_product1) < epsilon and abs(cross_product2) < epsilon

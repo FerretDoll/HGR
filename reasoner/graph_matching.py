@@ -14,7 +14,7 @@ from ctypes import c_char_p, CFUNCTYPE
 from reasoner.hologram import GraphModel
 from reasoner.utils import filter_duplicates, group_by_id_sets, filter_mappings
 from reasoner.config import TOLERANCE
-from utils.common_utils import calc_cross_angle
+from utils.common_utils import calc_cross_angle, is_collinear_lines
 from reasoner.config import logger
 
 # Define callback function types
@@ -223,10 +223,13 @@ def parse_expression(expr_str, _placeholders, key_value_pair=None, is_visual=Fal
         lhs, rhs = map(str.strip, expr_str.split('||'))
         _, line_1 = str(lhs).split('_', 1)
         _, line_2 = str(rhs).split('_', 1)
-        cross_angle = calc_cross_angle(line_1, line_2, point_positions)
-        if (approximately_equal(cross_angle, 180, TOLERANCE.get('angle')) or
-                approximately_equal(cross_angle, 0, TOLERANCE.get('angle'))):
-            return True
+        if is_collinear_lines(line_1, line_2, point_positions):
+            return False
+        else:
+            cross_angle = calc_cross_angle(line_1, line_2, point_positions)
+            if (approximately_equal(cross_angle, 180, TOLERANCE.get('angle')) or
+                    approximately_equal(cross_angle, 0, TOLERANCE.get('angle'))):
+                return True
         return False
 
     return sympify(expr_str)
