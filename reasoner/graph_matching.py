@@ -199,13 +199,17 @@ def parse_expression(expr_str, _placeholders, key_value_pair=None, is_visual=Fal
         lhs, rhs = map(str.strip, expr_str.split('='))
 
         if key_value_pair is not None and is_visual:
+            is_ratio_form = ('/' in lhs) and ('/' in rhs)
             lhs_eval = eval_with_none_check(lhs, key_value_pair)
             rhs_eval = eval_with_none_check(rhs, key_value_pair)
             tolerance = None
-            for key, value in TOLERANCE.items():
-                if key in lhs or key in rhs:
-                    tolerance = value
-                    break
+            if is_ratio_form:
+                tolerance = TOLERANCE.get('ratio')
+            else:
+                for key, value in TOLERANCE.items():
+                    if key in lhs or key in rhs:
+                        tolerance = value
+                        break
 
             if lhs_eval is None or rhs_eval is None:
                 return False  # In the case of None, return False
@@ -461,7 +465,7 @@ def process_mapping(mapping_dict, model_graph, global_graph, global_symbols, ini
     return None
 
 
-def parallel_process(group, model_graph, global_graph, global_symbols, init_solutions, timeout=10):
+def parallel_process(group, model_graph, global_graph, global_symbols, init_solutions, timeout):
     parsed_mappings = [parse_mapping(model_graph, global_graph, s) for s in group]
     filtered_mappings = (filter_mappings(parsed_mappings, model_graph.fixed_nodes)
                          if len(model_graph.fixed_nodes) > 0 else parsed_mappings)
@@ -494,6 +498,18 @@ def parallel_process(group, model_graph, global_graph, global_symbols, init_solu
     return None
 
 
+def single_process(group, model_graph, global_graph, global_symbols, init_solutions):
+    parsed_mappings = [parse_mapping(model_graph, global_graph, s) for s in group]
+    filtered_mappings = (filter_mappings(parsed_mappings, model_graph.fixed_nodes)
+                         if len(model_graph.fixed_nodes) > 0 else parsed_mappings)
+    for mapping in filtered_mappings:
+        result = process_mapping(mapping, model_graph, global_graph, global_symbols, init_solutions)
+        if result is not None:
+            return result
+
+    return None
+
+
 def match_graphs(model_graph, global_graph, global_symbols=None, init_solutions=None, timeout=20):
     """
     Use VF3 algorithm to match two graphs and verify the constraints.
@@ -510,7 +526,9 @@ def match_graphs(model_graph, global_graph, global_symbols=None, init_solutions=
             grouped_list = group_by_id_sets(solution)
             start_time = time.time()
             for group in grouped_list:
-                mapping_dict_result = parallel_process(group, model_graph, global_graph, global_symbols, init_solutions)
+                # mapping_dict_result = parallel_process(group, model_graph, global_graph, global_symbols, init_solutions,
+                #                                        timeout)
+                mapping_dict_result = single_process(group, model_graph, global_graph, global_symbols, init_solutions)
                 if mapping_dict_result:
                     mapping_dict_list.append(mapping_dict_result)
                 if time.time() - start_time > timeout:

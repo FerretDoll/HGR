@@ -421,6 +421,8 @@
       "line_ab**2 = line_ac**2 + line_bc**2 - 2*line_ac*line_bc*cos(angle_acb)",
       "line_bc**2 = line_ac**2 + line_ab**2 - 2*line_ac*line_ab*cos(angle_bac)",
       "line_ac**2 = line_ab**2 + line_bc**2 - 2*line_ab*line_bc*cos(angle_abc)",
+      "line_ab / sin(angle_acb) = line_bc / sin(angle_bac)",
+      "line_ac / sin(angle_abc) = line_bc / sin(angle_bac)",
       "triangle_abc = line_ab * line_bc * sin(angle_abc) / 2",
       "triangle_abc = line_ab * line_ac * sin(angle_bac) / 2",
       "triangle_abc = line_ac * line_bc * sin(angle_acb) / 2"
@@ -14079,5 +14081,327 @@
       }
     ],
     "grf_data": "9\n0 7\n1 1\n2 1\n3 1\n4 1\n5 3\n6 3\n7 3\n8 3\n0\n3\n1 0 14\n1 2 1\n1 3 1\n3\n2 0 14\n2 3 1\n2 4 1\n2\n3 0 14\n3 4 1\n2\n4 0 14\n4 1 1\n4\n5 2 14\n5 1 12\n5 3 12\n5 0 10\n4\n6 4 12\n6 3 14\n6 2 12\n6 0 10\n4\n7 1 14\n7 4 12\n7 2 12\n7 0 10\n4\n8 4 14\n8 3 12\n8 1 12\n8 0 10\n"
+  },
+  "Quadrilateral_Similar_1": {
+    "id": "65",
+    "relation": "Similar($polygon_1, $polygon_2)",
+    "constraints": "",
+    "visual_constraints": "line_1 / line_8 = line_4 / line_7 AND line_1 / line_8 = line_3 / line_5 AND line_1 / line_8 = line_2 / line_6",
+    "fixed_nodes": [
+      "polygon_1",
+      "polygon_2",
+      "line_1",
+      "line_2",
+      "line_3",
+      "line_4"
+    ],
+    "actions": [],
+    "equations": [
+      "line_1 / line_8 = line_4 / line_7",
+      "line_1 / line_8 = line_3 / line_5",
+      "line_1 / line_8 = line_2 / line_6",
+      "angle_3 = angle_6",
+      "angle_2 = angle_5",
+      "angle_4 = angle_7"
+    ],
+    "node_types": {
+      "7": 2,
+      "2": 8,
+      "3": 7
+    },
+    "edge_types": {
+      "13": 8,
+      "6": 1,
+      "10": 8,
+      "15": 16
+    },
+    "nodes": [
+      {
+        "id": "n1",
+        "name": "polygon_1",
+        "type": "Polygon"
+      },
+      {
+        "id": "n2",
+        "name": "polygon_2",
+        "type": "Polygon"
+      },
+      {
+        "id": "n3",
+        "name": "line_1",
+        "type": "Line"
+      },
+      {
+        "id": "n4",
+        "name": "line_2",
+        "type": "Line"
+      },
+      {
+        "id": "n5",
+        "name": "line_3",
+        "type": "Line"
+      },
+      {
+        "id": "n6",
+        "name": "line_4",
+        "type": "Line"
+      },
+      {
+        "id": "n7",
+        "name": "line_5",
+        "type": "Line"
+      },
+      {
+        "id": "n8",
+        "name": "line_6",
+        "type": "Line"
+      },
+      {
+        "id": "n9",
+        "name": "line_7",
+        "type": "Line"
+      },
+      {
+        "id": "n10",
+        "name": "line_8",
+        "type": "Line"
+      },
+      {
+        "id": "n11",
+        "name": "angle_1",
+        "type": "Angle"
+      },
+      {
+        "id": "n12",
+        "name": "angle_2",
+        "type": "Angle"
+      },
+      {
+        "id": "n13",
+        "name": "angle_3",
+        "type": "Angle"
+      },
+      {
+        "id": "n14",
+        "name": "angle_4",
+        "type": "Angle"
+      },
+      {
+        "id": "n15",
+        "name": "angle_5",
+        "type": "Angle"
+      },
+      {
+        "id": "n16",
+        "name": "angle_6",
+        "type": "Angle"
+      },
+      {
+        "id": "n17",
+        "name": "angle_7",
+        "type": "Angle"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "n4",
+        "target": "n1",
+        "type": "Side"
+      },
+      {
+        "id": "e2",
+        "source": "n1",
+        "target": "n5",
+        "type": "Side"
+      },
+      {
+        "id": "e3",
+        "source": "n3",
+        "target": "n1",
+        "type": "Side"
+      },
+      {
+        "id": "e4",
+        "source": "n1",
+        "target": "n6",
+        "type": "Side"
+      },
+      {
+        "id": "e5",
+        "source": "n10",
+        "target": "n2",
+        "type": "Side"
+      },
+      {
+        "id": "e6",
+        "source": "n9",
+        "target": "n2",
+        "type": "Side"
+      },
+      {
+        "id": "e7",
+        "source": "n8",
+        "target": "n2",
+        "type": "Side"
+      },
+      {
+        "id": "e8",
+        "source": "n7",
+        "target": "n2",
+        "type": "Side"
+      },
+      {
+        "id": "e9",
+        "source": "n1",
+        "target": "n2",
+        "type": "Similar"
+      },
+      {
+        "id": "e10",
+        "source": "n11",
+        "target": "n1",
+        "type": "Interior"
+      },
+      {
+        "id": "e11",
+        "source": "n11",
+        "target": "n2",
+        "type": "Interior"
+      },
+      {
+        "id": "e12",
+        "source": "n7",
+        "target": "n13",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e13",
+        "source": "n16",
+        "target": "n1",
+        "type": "Interior"
+      },
+      {
+        "id": "e14",
+        "source": "n15",
+        "target": "n1",
+        "type": "Interior"
+      },
+      {
+        "id": "e15",
+        "source": "n14",
+        "target": "n1",
+        "type": "Interior"
+      },
+      {
+        "id": "e16",
+        "source": "n10",
+        "target": "n13",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e17",
+        "source": "n13",
+        "target": "n2",
+        "type": "Interior"
+      },
+      {
+        "id": "e18",
+        "source": "n12",
+        "target": "n2",
+        "type": "Interior"
+      },
+      {
+        "id": "e19",
+        "source": "n5",
+        "target": "n15",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e20",
+        "source": "n15",
+        "target": "n4",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e21",
+        "source": "n4",
+        "target": "n14",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e22",
+        "source": "n14",
+        "target": "n6",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e23",
+        "source": "n6",
+        "target": "n11",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e24",
+        "source": "n11",
+        "target": "n3",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e25",
+        "source": "n3",
+        "target": "n16",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e26",
+        "source": "n16",
+        "target": "n5",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e27",
+        "source": "n11",
+        "target": "n9",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e28",
+        "source": "n11",
+        "target": "n10",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e29",
+        "source": "n12",
+        "target": "n7",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e30",
+        "source": "n8",
+        "target": "n12",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e31",
+        "source": "n17",
+        "target": "n9",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e32",
+        "source": "n17",
+        "target": "n8",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e33",
+        "source": "n17",
+        "target": "n2",
+        "type": "Interior"
+      }
+    ],
+    "grf_data": "17\n0 7\n1 7\n2 2\n3 2\n4 2\n5 2\n6 2\n7 2\n8 2\n9 2\n10 3\n11 3\n12 3\n13 3\n14 3\n15 3\n16 3\n3\n0 4 13\n0 5 13\n0 1 6\n0\n2\n2 0 13\n2 15 15\n2\n3 0 13\n3 13 15\n1\n4 14 15\n1\n5 10 15\n2\n6 1 13\n6 12 15\n2\n7 1 13\n7 11 15\n1\n8 1 13\n2\n9 1 13\n9 12 15\n5\n10 0 10\n10 1 10\n10 2 15\n10 8 15\n10 9 15\n2\n11 1 10\n11 6 15\n1\n12 1 10\n2\n13 0 10\n13 5 15\n2\n14 0 10\n14 3 15\n2\n15 0 10\n15 4 15\n3\n16 8 15\n16 7 15\n16 1 10\n"
   }
 }

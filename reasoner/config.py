@@ -101,7 +101,8 @@ TOLERANCE = {
     "arc": pi/45,
     "circle": 5,
     "triangle": 5,
-    "polygon": 5
+    "polygon": 5,
+    "ratio": 0.1
 }
 
 # 定义基本文件名

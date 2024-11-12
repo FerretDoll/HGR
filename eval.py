@@ -236,8 +236,7 @@ def solve_with_time(solver, q_id, time_limit=180):
     res = return_dict.get('result', res)
 
     if res["correctness"] == "no":
-        eval_logger.error(f'q_id: {q_id} - Agent failed, fallback to heuristic strategy: {res}')
-
+        eval_logger.error(f'q_id: {q_id} - Agent failed, fallback to heuristic strategy')
         p_fallback = mp.Process(target=solve_heuristic_process, args=(return_dict, q_id, res,))
         p_fallback.start()
         p_fallback.join(time_limit)
@@ -255,7 +254,7 @@ def solve_with_time(solver, q_id, time_limit=180):
 def eval(solver, st, ed):
     for q_id in trange(st, ed):
         try:
-            solve_with_time(solver, q_id)
+            solve_with_time(solver, q_id, time_limit=300)
         except Exception as e:
             eval_logger.error(f'q_id: {q_id} - Error: {e}')
             continue
@@ -284,7 +283,7 @@ if __name__ == "__main__":
 
     if args.question_id:
         if args.use_agent:
-            solve_with_time(solver, args.question_id)
+            solve_with_time(solver, args.question_id, time_limit=300)
         else:
             res = solve_question(args.question_id)
             eval_logger.debug(res)
