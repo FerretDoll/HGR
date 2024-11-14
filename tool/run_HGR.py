@@ -306,7 +306,7 @@ def check_id_in_error_ids(question_id, error_file):
         return False
 
 
-def test_one_question(q_id, time_limit=180):
+def test_one_question(q_id, time_limit=300):
     if check_id_in_error_ids(q_id, config.error_ids_path):
         logger.error(f"Error: question id {q_id} is in parsing_error_ids")
         sys.exit(1)
@@ -343,7 +343,7 @@ if __name__ == "__main__":
     # evaluate_all_questions(2401, 3001)
 
     try:
-        q_id = 2456
+        q_id = 2583
 
         # Test and answer single questions
         test_one_question(q_id)
@@ -354,7 +354,7 @@ if __name__ == "__main__":
         # Draw a global map
         # test_draw_global_graph(q_id)
 
-        # test_solve_with_model_sequence(q_id, [2, 66])
+        # test_solve_with_model_sequence(q_id, [5, 14])
     except argparse.ArgumentError:
         logger.error("Error: question id is required")
         sys.exit(1)

@@ -409,6 +409,404 @@
     ],
     "grf_data": "6\n0 1\n1 1\n2 1\n3 2\n4 2\n5 2\n0\n1\n1 0 1\n2\n2 1 1\n2 0 1\n3\n3 1 7\n3 2 11\n3 0 11\n2\n4 1 11\n4 2 11\n2\n5 0 11\n5 1 11\n"
   },
+  "Triangle_Center_Of_Gravity_Theorem": {
+    "id": 21,
+    "relation": "IsGravityOf($e,$triangle_acf)",
+    "constraints": "line_ag = line_fg AND line_df = line_cd AND line_ab = line_bc",
+    "visual_constraints": "",
+    "fixed_nodes": [],
+    "actions": [],
+    "equations": [
+      "line_ae = 2 * line_de",
+      "line_ef = 2 * line_be",
+      "line_ce = 2 * line_eg"
+    ],
+    "node_types": {
+      "1": 7,
+      "2": 12,
+      "4": 1
+    },
+    "edge_types": {
+      "1": 18,
+      "11": 24,
+      "14": 3
+    },
+    "nodes": [
+      {
+        "id": "n1",
+        "name": "a",
+        "type": "Point"
+      },
+      {
+        "id": "n2",
+        "name": "b",
+        "type": "Point"
+      },
+      {
+        "id": "n3",
+        "name": "c",
+        "type": "Point"
+      },
+      {
+        "id": "n4",
+        "name": "d",
+        "type": "Point"
+      },
+      {
+        "id": "n5",
+        "name": "e",
+        "type": "Point"
+      },
+      {
+        "id": "n6",
+        "name": "f",
+        "type": "Point"
+      },
+      {
+        "id": "n7",
+        "name": "g",
+        "type": "Point"
+      },
+      {
+        "id": "n8",
+        "name": "line_ef",
+        "type": "Line"
+      },
+      {
+        "id": "n9",
+        "name": "line_eg",
+        "type": "Line"
+      },
+      {
+        "id": "n10",
+        "name": "line_ce",
+        "type": "Line"
+      },
+      {
+        "id": "n11",
+        "name": "line_be",
+        "type": "Line"
+      },
+      {
+        "id": "n12",
+        "name": "line_ae",
+        "type": "Line"
+      },
+      {
+        "id": "n13",
+        "name": "line_cd",
+        "type": "Line"
+      },
+      {
+        "id": "n14",
+        "name": "line_df",
+        "type": "Line"
+      },
+      {
+        "id": "n15",
+        "name": "line_bc",
+        "type": "Line"
+      },
+      {
+        "id": "n16",
+        "name": "line_ab",
+        "type": "Line"
+      },
+      {
+        "id": "n17",
+        "name": "line_fg",
+        "type": "Line"
+      },
+      {
+        "id": "n18",
+        "name": "line_ag",
+        "type": "Line"
+      },
+      {
+        "id": "n19",
+        "name": "line_de",
+        "type": "Line"
+      },
+      {
+        "id": "n20",
+        "name": "triangle_acf",
+        "type": "Triangle"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "n1",
+        "target": "n7",
+        "type": "Connected"
+      },
+      {
+        "id": "e2",
+        "source": "n7",
+        "target": "n6",
+        "type": "Connected"
+      },
+      {
+        "id": "e3",
+        "source": "n6",
+        "target": "n1",
+        "type": "Connected"
+      },
+      {
+        "id": "e4",
+        "source": "n1",
+        "target": "n2",
+        "type": "Connected"
+      },
+      {
+        "id": "e5",
+        "source": "n3",
+        "target": "n2",
+        "type": "Connected"
+      },
+      {
+        "id": "e6",
+        "source": "n1",
+        "target": "n3",
+        "type": "Connected"
+      },
+      {
+        "id": "e7",
+        "source": "n3",
+        "target": "n4",
+        "type": "Connected"
+      },
+      {
+        "id": "e8",
+        "source": "n4",
+        "target": "n6",
+        "type": "Connected"
+      },
+      {
+        "id": "e9",
+        "source": "n6",
+        "target": "n3",
+        "type": "Connected"
+      },
+      {
+        "id": "e10",
+        "source": "n4",
+        "target": "n5",
+        "type": "Connected"
+      },
+      {
+        "id": "e11",
+        "source": "n5",
+        "target": "n1",
+        "type": "Connected"
+      },
+      {
+        "id": "e12",
+        "source": "n1",
+        "target": "n4",
+        "type": "Connected"
+      },
+      {
+        "id": "e13",
+        "source": "n7",
+        "target": "n5",
+        "type": "Connected"
+      },
+      {
+        "id": "e14",
+        "source": "n5",
+        "target": "n3",
+        "type": "Connected"
+      },
+      {
+        "id": "e15",
+        "source": "n3",
+        "target": "n7",
+        "type": "Connected"
+      },
+      {
+        "id": "e16",
+        "source": "n6",
+        "target": "n5",
+        "type": "Connected"
+      },
+      {
+        "id": "e17",
+        "source": "n5",
+        "target": "n2",
+        "type": "Connected"
+      },
+      {
+        "id": "e18",
+        "source": "n2",
+        "target": "n6",
+        "type": "Connected"
+      },
+      {
+        "id": "e19",
+        "source": "n18",
+        "target": "n1",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e20",
+        "source": "n18",
+        "target": "n7",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e21",
+        "source": "n17",
+        "target": "n7",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e22",
+        "source": "n17",
+        "target": "n6",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e23",
+        "source": "n16",
+        "target": "n1",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e24",
+        "source": "n16",
+        "target": "n2",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e25",
+        "source": "n15",
+        "target": "n2",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e26",
+        "source": "n15",
+        "target": "n3",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e27",
+        "source": "n14",
+        "target": "n6",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e28",
+        "source": "n14",
+        "target": "n4",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e29",
+        "source": "n13",
+        "target": "n4",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e30",
+        "source": "n13",
+        "target": "n3",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e31",
+        "source": "n12",
+        "target": "n1",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e32",
+        "source": "n12",
+        "target": "n5",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e33",
+        "source": "n11",
+        "target": "n5",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e34",
+        "source": "n11",
+        "target": "n2",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e35",
+        "source": "n10",
+        "target": "n5",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e36",
+        "source": "n10",
+        "target": "n3",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e37",
+        "source": "n9",
+        "target": "n7",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e38",
+        "source": "n9",
+        "target": "n5",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e39",
+        "source": "n8",
+        "target": "n6",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e40",
+        "source": "n8",
+        "target": "n5",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e41",
+        "source": "n19",
+        "target": "n5",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e42",
+        "source": "n19",
+        "target": "n4",
+        "type": "Endpoint"
+      },
+      {
+        "id": "e43",
+        "source": "n20",
+        "target": "n1",
+        "type": "Vertex"
+      },
+      {
+        "id": "e44",
+        "source": "n20",
+        "target": "n6",
+        "type": "Vertex"
+      },
+      {
+        "id": "e45",
+        "source": "n20",
+        "target": "n3",
+        "type": "Vertex"
+      }
+    ],
+    "grf_data": "20\n0 1\n1 1\n2 1\n3 1\n4 1\n5 1\n6 1\n7 2\n8 2\n9 2\n10 2\n11 2\n12 2\n13 2\n14 2\n15 2\n16 2\n17 2\n18 2\n19 4\n4\n0 6 1\n0 1 1\n0 2 1\n0 3 1\n1\n1 5 1\n3\n2 1 1\n2 3 1\n2 6 1\n2\n3 5 1\n3 4 1\n3\n4 0 1\n4 2 1\n4 1 1\n3\n5 0 1\n5 2 1\n5 4 1\n2\n6 5 1\n6 4 1\n2\n7 5 11\n7 4 11\n2\n8 6 11\n8 4 11\n2\n9 4 11\n9 2 11\n2\n10 4 11\n10 1 11\n2\n11 0 11\n11 4 11\n2\n12 3 11\n12 2 11\n2\n13 5 11\n13 3 11\n2\n14 1 11\n14 2 11\n2\n15 0 11\n15 1 11\n2\n16 6 11\n16 5 11\n2\n17 0 11\n17 6 11\n2\n18 4 11\n18 3 11\n3\n19 0 14\n19 5 14\n19 2 14\n"
+  },
   "Triangle": {
     "id": 3,
     "relation": "Triangle($a, $b, $c)",
@@ -1311,38 +1709,41 @@
   "Isosceles_Triangle_Altitude_2": {
     "id": 6,
     "relation": "Equals(LengthOf($line_cd),LengthOf($line_bd))",
-    "constraints": "line_ab = line_ac AND angle_cad = pi / 2",
+    "constraints": "line_bd = line_cd AND angle_adc = pi / 2 AND angle_adb= pi / 2",
     "visual_constraints": "",
-    "fixed_nodes": [],
+    "fixed_nodes": [
+      "angle_adc",
+      "angle_adb"
+    ],
     "actions": [],
     "equations": [
-      "angle_adc = angle_adb",
-      "line_cd = line_bd"
+      "angle_cad = angle_bad",
+      "line_ab = line_ac"
     ],
     "node_types": {
       "4": 1,
       "1": 4,
       "2": 5,
-      "3": 3
+      "3": 4
     },
     "edge_types": {
       "1": 6,
-      "14": 6,
+      "14": 7,
       "7": 1,
       "11": 10,
       "13": 3,
-      "12": 6,
-      "15": 3
+      "12": 8,
+      "15": 4
     },
     "nodes": [
       {
         "id": "n1",
-        "name": "triangle_bcd",
+        "name": "triangle_abc",
         "type": "Triangle"
       },
       {
         "id": "n2",
-        "name": "d",
+        "name": "a",
         "type": "Point"
       },
       {
@@ -1357,7 +1758,7 @@
       },
       {
         "id": "n5",
-        "name": "a",
+        "name": "d",
         "type": "Point"
       },
       {
@@ -1367,37 +1768,42 @@
       },
       {
         "id": "n7",
-        "name": "line_bd",
-        "type": "Line"
-      },
-      {
-        "id": "n8",
-        "name": "line_cd",
-        "type": "Line"
-      },
-      {
-        "id": "n9",
         "name": "line_ab",
         "type": "Line"
       },
       {
-        "id": "n10",
+        "id": "n8",
         "name": "line_ac",
         "type": "Line"
       },
       {
+        "id": "n9",
+        "name": "line_bd",
+        "type": "Line"
+      },
+      {
+        "id": "n10",
+        "name": "line_cd",
+        "type": "Line"
+      },
+      {
         "id": "n11",
-        "name": "angle_adc",
+        "name": "angle_cad",
         "type": "Angle"
       },
       {
         "id": "n12",
-        "name": "angle_adb",
+        "name": "angle_bad",
         "type": "Angle"
       },
       {
         "id": "n13",
-        "name": "angle_cad",
+        "name": "angle_adc",
+        "type": "Angle"
+      },
+      {
+        "id": "n14",
+        "name": "angle_adb",
         "type": "Angle"
       }
     ],
@@ -1611,9 +2017,33 @@
         "source": "n10",
         "target": "n13",
         "type": "AngleSide"
+      },
+      {
+        "id": "e36",
+        "source": "n14",
+        "target": "n3",
+        "type": "Sidepoint"
+      },
+      {
+        "id": "e37",
+        "source": "n14",
+        "target": "n5",
+        "type": "Vertex"
+      },
+      {
+        "id": "e38",
+        "source": "n14",
+        "target": "n2",
+        "type": "Sidepoint"
+      },
+      {
+        "id": "e39",
+        "source": "n14",
+        "target": "n9",
+        "type": "AngleSide"
       }
     ],
-    "grf_data": "13\n0 4\n1 1\n2 1\n3 1\n4 1\n5 2\n6 2\n7 2\n8 2\n9 2\n10 3\n11 3\n12 3\n3\n0 2 14\n0 1 14\n0 3 14\n2\n1 2 1\n1 3 1\n1\n2 3 1\n0\n3\n4 1 1\n4 3 1\n4 2 1\n4\n5 4 7\n5 3 11\n5 2 11\n5 0 13\n3\n6 1 11\n6 2 11\n6 0 13\n4\n7 3 11\n7 1 11\n7 0 13\n7 10 15\n2\n8 4 11\n8 2 11\n3\n9 3 11\n9 4 11\n9 12 15\n3\n10 1 14\n10 3 12\n10 4 12\n4\n11 6 15\n11 1 14\n11 4 12\n11 2 12\n3\n12 3 12\n12 4 14\n12 1 12\n"
+    "grf_data": "14\n0 4\n1 1\n2 1\n3 1\n4 1\n5 2\n6 2\n7 2\n8 2\n9 2\n10 3\n11 3\n12 3\n13 3\n3\n0 2 14\n0 1 14\n0 3 14\n2\n1 2 1\n1 3 1\n1\n2 3 1\n0\n3\n4 1 1\n4 3 1\n4 2 1\n4\n5 4 7\n5 3 11\n5 2 11\n5 0 13\n3\n6 1 11\n6 2 11\n6 0 13\n4\n7 3 11\n7 1 11\n7 0 13\n7 10 15\n2\n8 4 11\n8 2 11\n3\n9 3 11\n9 4 11\n9 12 15\n3\n10 1 14\n10 3 12\n10 4 12\n4\n11 6 15\n11 1 14\n11 4 12\n11 2 12\n3\n12 3 12\n12 4 14\n12 1 12\n4\n13 2 12\n13 4 14\n13 1 12\n13 8 15\n"
   },
   "Isosceles_Triangle_Theorem_Angle": {
     "id": 7,
@@ -2572,7 +3002,12 @@
     "relation": "Congruent_($triangle_1,$triangle_2)",
     "constraints": "",
     "visual_constraints": "line_2 = line_4 AND line_3 = line_5",
-    "fixed_nodes": [],
+    "fixed_nodes": [
+      "triangle_1",
+      "triangle_2",
+      "line_2",
+      "line_3"
+    ],
     "actions": [],
     "equations": [
       "line_2 = line_4",
@@ -4967,404 +5402,6 @@
       }
     ],
     "grf_data": "14\n0 4\n1 4\n2 2\n3 2\n4 2\n5 2\n6 2\n7 2\n8 3\n9 3\n10 3\n11 3\n12 3\n13 1\n1\n0 1 6\n0\n1\n2 1 13\n1\n3 1 13\n1\n4 1 13\n2\n5 0 13\n5 2 4\n2\n6 0 13\n6 8 15\n2\n7 0 13\n7 8 15\n4\n8 0 10\n8 1 10\n8 4 15\n8 3 15\n3\n9 0 10\n9 7 15\n9 5 15\n3\n10 0 10\n10 6 15\n10 5 15\n3\n11 1 10\n11 3 15\n11 2 15\n3\n12 4 15\n12 1 10\n12 2 15\n8\n13 4 11\n13 2 11\n13 1 14\n13 6 7\n13 10 12\n13 12 14\n13 8 12\n13 11 12\n"
-  },
-  "Triangle_Center_Of_Gravity_Theorem": {
-    "id": 21,
-    "relation": "IsGravityOf($e,$triangle_acf)",
-    "constraints": "line_ag = line_fg AND line_df = line_cd AND line_ab = line_bc",
-    "visual_constraints": "",
-    "fixed_nodes": [],
-    "actions": [],
-    "equations": [
-      "line_ae = 2 * line_de",
-      "line_ef = 2 * line_be",
-      "line_ce = 2 * line_eg"
-    ],
-    "node_types": {
-      "1": 7,
-      "2": 12,
-      "4": 1
-    },
-    "edge_types": {
-      "1": 18,
-      "11": 24,
-      "14": 3
-    },
-    "nodes": [
-      {
-        "id": "n1",
-        "name": "a",
-        "type": "Point"
-      },
-      {
-        "id": "n2",
-        "name": "b",
-        "type": "Point"
-      },
-      {
-        "id": "n3",
-        "name": "c",
-        "type": "Point"
-      },
-      {
-        "id": "n4",
-        "name": "d",
-        "type": "Point"
-      },
-      {
-        "id": "n5",
-        "name": "e",
-        "type": "Point"
-      },
-      {
-        "id": "n6",
-        "name": "f",
-        "type": "Point"
-      },
-      {
-        "id": "n7",
-        "name": "g",
-        "type": "Point"
-      },
-      {
-        "id": "n8",
-        "name": "line_ef",
-        "type": "Line"
-      },
-      {
-        "id": "n9",
-        "name": "line_eg",
-        "type": "Line"
-      },
-      {
-        "id": "n10",
-        "name": "line_ce",
-        "type": "Line"
-      },
-      {
-        "id": "n11",
-        "name": "line_be",
-        "type": "Line"
-      },
-      {
-        "id": "n12",
-        "name": "line_ae",
-        "type": "Line"
-      },
-      {
-        "id": "n13",
-        "name": "line_cd",
-        "type": "Line"
-      },
-      {
-        "id": "n14",
-        "name": "line_df",
-        "type": "Line"
-      },
-      {
-        "id": "n15",
-        "name": "line_bc",
-        "type": "Line"
-      },
-      {
-        "id": "n16",
-        "name": "line_ab",
-        "type": "Line"
-      },
-      {
-        "id": "n17",
-        "name": "line_fg",
-        "type": "Line"
-      },
-      {
-        "id": "n18",
-        "name": "line_ag",
-        "type": "Line"
-      },
-      {
-        "id": "n19",
-        "name": "line_de",
-        "type": "Line"
-      },
-      {
-        "id": "n20",
-        "name": "triangle_acf",
-        "type": "Triangle"
-      }
-    ],
-    "edges": [
-      {
-        "id": "e1",
-        "source": "n1",
-        "target": "n7",
-        "type": "Connected"
-      },
-      {
-        "id": "e2",
-        "source": "n7",
-        "target": "n6",
-        "type": "Connected"
-      },
-      {
-        "id": "e3",
-        "source": "n6",
-        "target": "n1",
-        "type": "Connected"
-      },
-      {
-        "id": "e4",
-        "source": "n1",
-        "target": "n2",
-        "type": "Connected"
-      },
-      {
-        "id": "e5",
-        "source": "n3",
-        "target": "n2",
-        "type": "Connected"
-      },
-      {
-        "id": "e6",
-        "source": "n1",
-        "target": "n3",
-        "type": "Connected"
-      },
-      {
-        "id": "e7",
-        "source": "n3",
-        "target": "n4",
-        "type": "Connected"
-      },
-      {
-        "id": "e8",
-        "source": "n4",
-        "target": "n6",
-        "type": "Connected"
-      },
-      {
-        "id": "e9",
-        "source": "n6",
-        "target": "n3",
-        "type": "Connected"
-      },
-      {
-        "id": "e10",
-        "source": "n4",
-        "target": "n5",
-        "type": "Connected"
-      },
-      {
-        "id": "e11",
-        "source": "n5",
-        "target": "n1",
-        "type": "Connected"
-      },
-      {
-        "id": "e12",
-        "source": "n1",
-        "target": "n4",
-        "type": "Connected"
-      },
-      {
-        "id": "e13",
-        "source": "n7",
-        "target": "n5",
-        "type": "Connected"
-      },
-      {
-        "id": "e14",
-        "source": "n5",
-        "target": "n3",
-        "type": "Connected"
-      },
-      {
-        "id": "e15",
-        "source": "n3",
-        "target": "n7",
-        "type": "Connected"
-      },
-      {
-        "id": "e16",
-        "source": "n6",
-        "target": "n5",
-        "type": "Connected"
-      },
-      {
-        "id": "e17",
-        "source": "n5",
-        "target": "n2",
-        "type": "Connected"
-      },
-      {
-        "id": "e18",
-        "source": "n2",
-        "target": "n6",
-        "type": "Connected"
-      },
-      {
-        "id": "e19",
-        "source": "n18",
-        "target": "n1",
-        "type": "Endpoint"
-      },
-      {
-        "id": "e20",
-        "source": "n18",
-        "target": "n7",
-        "type": "Endpoint"
-      },
-      {
-        "id": "e21",
-        "source": "n17",
-        "target": "n7",
-        "type": "Endpoint"
-      },
-      {
-        "id": "e22",
-        "source": "n17",
-        "target": "n6",
-        "type": "Endpoint"
-      },
-      {
-        "id": "e23",
-        "source": "n16",
-        "target": "n1",
-        "type": "Endpoint"
-      },
-      {
-        "id": "e24",
-        "source": "n16",
-        "target": "n2",
-        "type": "Endpoint"
-      },
-      {
-        "id": "e25",
-        "source": "n15",
-        "target": "n2",
-        "type": "Endpoint"
-      },
-      {
-        "id": "e26",
-        "source": "n15",
-        "target": "n3",
-        "type": "Endpoint"
-      },
-      {
-        "id": "e27",
-        "source": "n14",
-        "target": "n6",
-        "type": "Endpoint"
-      },
-      {
-        "id": "e28",
-        "source": "n14",
-        "target": "n4",
-        "type": "Endpoint"
-      },
-      {
-        "id": "e29",
-        "source": "n13",
-        "target": "n4",
-        "type": "Endpoint"
-      },
-      {
-        "id": "e30",
-        "source": "n13",
-        "target": "n3",
-        "type": "Endpoint"
-      },
-      {
-        "id": "e31",
-        "source": "n12",
-        "target": "n1",
-        "type": "Endpoint"
-      },
-      {
-        "id": "e32",
-        "source": "n12",
-        "target": "n5",
-        "type": "Endpoint"
-      },
-      {
-        "id": "e33",
-        "source": "n11",
-        "target": "n5",
-        "type": "Endpoint"
-      },
-      {
-        "id": "e34",
-        "source": "n11",
-        "target": "n2",
-        "type": "Endpoint"
-      },
-      {
-        "id": "e35",
-        "source": "n10",
-        "target": "n5",
-        "type": "Endpoint"
-      },
-      {
-        "id": "e36",
-        "source": "n10",
-        "target": "n3",
-        "type": "Endpoint"
-      },
-      {
-        "id": "e37",
-        "source": "n9",
-        "target": "n7",
-        "type": "Endpoint"
-      },
-      {
-        "id": "e38",
-        "source": "n9",
-        "target": "n5",
-        "type": "Endpoint"
-      },
-      {
-        "id": "e39",
-        "source": "n8",
-        "target": "n6",
-        "type": "Endpoint"
-      },
-      {
-        "id": "e40",
-        "source": "n8",
-        "target": "n5",
-        "type": "Endpoint"
-      },
-      {
-        "id": "e41",
-        "source": "n19",
-        "target": "n5",
-        "type": "Endpoint"
-      },
-      {
-        "id": "e42",
-        "source": "n19",
-        "target": "n4",
-        "type": "Endpoint"
-      },
-      {
-        "id": "e43",
-        "source": "n20",
-        "target": "n1",
-        "type": "Vertex"
-      },
-      {
-        "id": "e44",
-        "source": "n20",
-        "target": "n6",
-        "type": "Vertex"
-      },
-      {
-        "id": "e45",
-        "source": "n20",
-        "target": "n3",
-        "type": "Vertex"
-      }
-    ],
-    "grf_data": "20\n0 1\n1 1\n2 1\n3 1\n4 1\n5 1\n6 1\n7 2\n8 2\n9 2\n10 2\n11 2\n12 2\n13 2\n14 2\n15 2\n16 2\n17 2\n18 2\n19 4\n4\n0 6 1\n0 1 1\n0 2 1\n0 3 1\n1\n1 5 1\n3\n2 1 1\n2 3 1\n2 6 1\n2\n3 5 1\n3 4 1\n3\n4 0 1\n4 2 1\n4 1 1\n3\n5 0 1\n5 2 1\n5 4 1\n2\n6 5 1\n6 4 1\n2\n7 5 11\n7 4 11\n2\n8 6 11\n8 4 11\n2\n9 4 11\n9 2 11\n2\n10 4 11\n10 1 11\n2\n11 0 11\n11 4 11\n2\n12 3 11\n12 2 11\n2\n13 5 11\n13 3 11\n2\n14 1 11\n14 2 11\n2\n15 0 11\n15 1 11\n2\n16 6 11\n16 5 11\n2\n17 0 11\n17 6 11\n2\n18 4 11\n18 3 11\n3\n19 0 14\n19 5 14\n19 2 14\n"
   },
   "Parallel_Alternate_Interior_Angle_Prove": {
     "id": 22,
@@ -14643,5 +14680,354 @@
       }
     ],
     "grf_data": "17\n0 7\n1 7\n2 2\n3 2\n4 2\n5 2\n6 2\n7 2\n8 2\n9 2\n10 3\n11 3\n12 3\n13 3\n14 3\n15 3\n16 3\n3\n0 4 13\n0 5 13\n0 1 6\n0\n2\n2 0 13\n2 15 15\n2\n3 0 13\n3 13 15\n1\n4 14 15\n1\n5 10 15\n2\n6 1 13\n6 12 15\n2\n7 1 13\n7 11 15\n1\n8 1 13\n2\n9 1 13\n9 12 15\n5\n10 0 10\n10 1 10\n10 2 15\n10 8 15\n10 9 15\n2\n11 1 10\n11 6 15\n1\n12 1 10\n2\n13 0 10\n13 5 15\n2\n14 0 10\n14 3 15\n2\n15 0 10\n15 4 15\n3\n16 8 15\n16 7 15\n16 1 10\n"
+  },
+  "Isosceles_Trapezoid_Theorem_Angle": {
+    "id": 67,
+    "relation": "Equals(LengthOf($line_2),LengthOf($line_4))",
+    "constraints": "angle_2 = angle_4 OR angle_1 = angle_3",
+    "visual_constraints": "",
+    "fixed_nodes": [],
+    "actions": [],
+    "equations": [
+      "line_2 = line_4"
+    ],
+    "node_types": {
+      "7": 1,
+      "2": 4,
+      "3": 4
+    },
+    "edge_types": {
+      "13": 4,
+      "15": 8,
+      "10": 4,
+      "4": 1
+    },
+    "nodes": [
+      {
+        "id": "n1",
+        "name": "polygon_1",
+        "type": "Polygon"
+      },
+      {
+        "id": "n2",
+        "name": "line_1",
+        "type": "Line"
+      },
+      {
+        "id": "n3",
+        "name": "line_2",
+        "type": "Line"
+      },
+      {
+        "id": "n4",
+        "name": "line_3",
+        "type": "Line"
+      },
+      {
+        "id": "n5",
+        "name": "line_4",
+        "type": "Line"
+      },
+      {
+        "id": "n6",
+        "name": "angle_1",
+        "type": "Angle"
+      },
+      {
+        "id": "n7",
+        "name": "angle_2",
+        "type": "Angle"
+      },
+      {
+        "id": "n8",
+        "name": "angle_3",
+        "type": "Angle"
+      },
+      {
+        "id": "n9",
+        "name": "angle_4",
+        "type": "Angle"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "n2",
+        "target": "n1",
+        "type": "Side"
+      },
+      {
+        "id": "e2",
+        "source": "n5",
+        "target": "n1",
+        "type": "Side"
+      },
+      {
+        "id": "e3",
+        "source": "n1",
+        "target": "n4",
+        "type": "Side"
+      },
+      {
+        "id": "e4",
+        "source": "n3",
+        "target": "n1",
+        "type": "Side"
+      },
+      {
+        "id": "e5",
+        "source": "n6",
+        "target": "n3",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e6",
+        "source": "n6",
+        "target": "n2",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e7",
+        "source": "n6",
+        "target": "n1",
+        "type": "Interior"
+      },
+      {
+        "id": "e8",
+        "source": "n7",
+        "target": "n1",
+        "type": "Interior"
+      },
+      {
+        "id": "e9",
+        "source": "n4",
+        "target": "n7",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e10",
+        "source": "n7",
+        "target": "n3",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e11",
+        "source": "n9",
+        "target": "n4",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e12",
+        "source": "n9",
+        "target": "n5",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e13",
+        "source": "n1",
+        "target": "n9",
+        "type": "Interior"
+      },
+      {
+        "id": "e14",
+        "source": "n8",
+        "target": "n1",
+        "type": "Interior"
+      },
+      {
+        "id": "e15",
+        "source": "n5",
+        "target": "n8",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e16",
+        "source": "n8",
+        "target": "n2",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e17",
+        "source": "n4",
+        "target": "n2",
+        "type": "Parallel"
+      }
+    ],
+    "grf_data": "9\n0 7\n1 2\n2 2\n3 2\n4 2\n5 3\n6 3\n7 3\n8 3\n2\n0 3 13\n0 8 10\n1\n1 0 13\n1\n2 0 13\n2\n3 6 15\n3 1 4\n2\n4 0 13\n4 7 15\n3\n5 2 15\n5 1 15\n5 0 10\n2\n6 0 10\n6 2 15\n2\n7 0 10\n7 1 15\n2\n8 3 15\n8 4 15\n"
+  },
+  "Isosceles_Trapezoid_Theorem_Side": {
+    "id": 68,
+    "relation": "Equals(MeasureOf($angle_1),MeasureOf($angle_3))",
+    "constraints": "line_2 = line_4",
+    "visual_constraints": "",
+    "fixed_nodes": [],
+    "actions": [],
+    "equations": [
+      "angle_1 = angle_3",
+      "angle_2 = angle_4"
+    ],
+    "node_types": {
+      "7": 1,
+      "2": 4,
+      "3": 4
+    },
+    "edge_types": {
+      "13": 4,
+      "15": 8,
+      "10": 4,
+      "4": 1
+    },
+    "nodes": [
+      {
+        "id": "n1",
+        "name": "polygon_1",
+        "type": "Polygon"
+      },
+      {
+        "id": "n2",
+        "name": "line_1",
+        "type": "Line"
+      },
+      {
+        "id": "n3",
+        "name": "line_2",
+        "type": "Line"
+      },
+      {
+        "id": "n4",
+        "name": "line_3",
+        "type": "Line"
+      },
+      {
+        "id": "n5",
+        "name": "line_4",
+        "type": "Line"
+      },
+      {
+        "id": "n6",
+        "name": "angle_1",
+        "type": "Angle"
+      },
+      {
+        "id": "n7",
+        "name": "angle_2",
+        "type": "Angle"
+      },
+      {
+        "id": "n8",
+        "name": "angle_3",
+        "type": "Angle"
+      },
+      {
+        "id": "n9",
+        "name": "angle_4",
+        "type": "Angle"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "n2",
+        "target": "n1",
+        "type": "Side"
+      },
+      {
+        "id": "e2",
+        "source": "n5",
+        "target": "n1",
+        "type": "Side"
+      },
+      {
+        "id": "e3",
+        "source": "n1",
+        "target": "n4",
+        "type": "Side"
+      },
+      {
+        "id": "e4",
+        "source": "n3",
+        "target": "n1",
+        "type": "Side"
+      },
+      {
+        "id": "e5",
+        "source": "n6",
+        "target": "n3",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e6",
+        "source": "n6",
+        "target": "n2",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e7",
+        "source": "n6",
+        "target": "n1",
+        "type": "Interior"
+      },
+      {
+        "id": "e8",
+        "source": "n7",
+        "target": "n1",
+        "type": "Interior"
+      },
+      {
+        "id": "e9",
+        "source": "n4",
+        "target": "n7",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e10",
+        "source": "n7",
+        "target": "n3",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e11",
+        "source": "n9",
+        "target": "n4",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e12",
+        "source": "n9",
+        "target": "n5",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e13",
+        "source": "n1",
+        "target": "n9",
+        "type": "Interior"
+      },
+      {
+        "id": "e14",
+        "source": "n8",
+        "target": "n1",
+        "type": "Interior"
+      },
+      {
+        "id": "e15",
+        "source": "n5",
+        "target": "n8",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e16",
+        "source": "n8",
+        "target": "n2",
+        "type": "AngleSide"
+      },
+      {
+        "id": "e17",
+        "source": "n4",
+        "target": "n2",
+        "type": "Parallel"
+      }
+    ],
+    "grf_data": "9\n0 7\n1 2\n2 2\n3 2\n4 2\n5 3\n6 3\n7 3\n8 3\n2\n0 3 13\n0 8 10\n1\n1 0 13\n1\n2 0 13\n2\n3 6 15\n3 1 4\n2\n4 0 13\n4 7 15\n3\n5 2 15\n5 1 15\n5 0 10\n2\n6 0 10\n6 2 15\n2\n7 0 10\n7 1 15\n2\n8 3 15\n8 4 15\n"
   }
 }

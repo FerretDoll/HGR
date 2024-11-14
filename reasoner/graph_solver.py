@@ -365,7 +365,7 @@ class GraphSolver:
 
         base_solutions = []
         try:
-            base_solutions = func_timeout(20, solve, kwargs=dict(f=base_equations, dict=True))
+            base_solutions = func_timeout(20, solve, kwargs=dict(f=base_equations, rational=True, dict=True))
             base_solutions = [sol for sol in base_solutions if self.is_within_domain(sol)]
         except FunctionTimedOut as e:
             logger.debug(f"Failed to solve base equations within the time limit")
@@ -420,7 +420,7 @@ class GraphSolver:
                     remaining_equations.remove(eq)
                     try:
                         sol = func_timeout(20, solve, kwargs=dict(f=eq.subs(knowns), symbols=unknown_var,
-                                                                  dict=True))
+                                                                  rational=True, dict=True))
                         sol = [list(s.values())[0] for s in sol if self.is_within_domain(s)]
                         if len(sol) == 1:
                             knowns[unknown_var] = sol[0]
@@ -498,7 +498,7 @@ class GraphSolver:
                                 try:
                                     pairs = [eq1.subs(knowns), eq2.subs(knowns)]
                                     logger.debug(f"Solving equations: {pairs}")
-                                    sol = func_timeout(10, solve, kwargs=dict(f=pairs, dict=True))
+                                    sol = func_timeout(10, solve, kwargs=dict(f=pairs, rational=True, dict=True))
                                     sol = [s for s in sol if self.is_within_domain(s)]
                                     if len(sol) > 0:
                                         sol = self.select_best_solution(sol)
@@ -692,7 +692,7 @@ class GraphSolver:
         init_equations = [item for sublist in list(self.node_value_equations_dict.values()) for item in sublist]
         init_equations.extend(self.global_graph.equations)
         try:
-            init_solutions = func_timeout(20, solve, kwargs=dict(f=init_equations, dict=True))
+            init_solutions = func_timeout(20, solve, kwargs=dict(f=init_equations, rational=True, dict=True))
             init_solutions = [sol for sol in init_solutions if self.is_within_domain(sol)]
             estimate = lambda sol: sum([str(expr)[0] != '-' for expr in sol.values()])  # negative value
             self.init_solutions = max(init_solutions, key=estimate)
