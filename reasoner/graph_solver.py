@@ -259,11 +259,40 @@ class GraphSolver:
             return []
 
     def replace_and_evaluate(self, target_equation):
+        result = None
         # Replace the symbols in target_equation
         for node_id, symbol in self.symbols.items():
             target_equation = target_equation.subs(symbols(node_id), symbol)
 
-        result = target_equation.evalf(subs=self.known_var)
+        # Check if all variables in target_equation are in self.known_var
+        equation_vars = target_equation.free_symbols
+        known_vars = set(self.known_var.keys())
+        missing_vars = equation_vars - known_vars
+
+        if missing_vars:
+            solutions = []
+            try:
+                target_equations = self.node_value_equations_dict[self.global_graph.target[0]]
+                new_equations = []
+                for eq in target_equations:
+                    right_side_float = eq.rhs.evalf()
+                    new_equation = Eq(eq.lhs, right_side_float)
+                    new_equations.append(new_equation)
+                solutions = func_timeout(20, solve, kwargs=dict(f=new_equations, dict=True))
+                solutions = [sol for sol in solutions if self.is_within_domain(sol)]
+            except FunctionTimedOut as e:
+                logger.debug(f"Failed to solve target node equations within the time limit")
+            except Exception as e:
+                logger.error(f"Failed to solve target node equations: {e}")
+            if len(solutions[0].keys()) > 0:
+                self.update_graph_node_values(solutions[0])
+                known_vars = set(self.known_var.keys())
+                missing_vars = equation_vars - known_vars
+
+                if not missing_vars:
+                    result = target_equation.evalf(subs=self.known_var)
+        else:
+            result = target_equation.evalf(subs=self.known_var)
 
         return result
 
