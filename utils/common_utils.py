@@ -386,7 +386,7 @@ def calc_angle_measure(angle, point_positions, is_rad=False):
     return calc_cross_angle(line1, line2, point_positions, is_rad)
 
 
-def is_collinear_lines(line1, line2, point_positions, epsilon=10):
+def is_collinear_lines(line1, line2, point_positions, epsilon=15):
     x1, y1 = point_positions[line1[0]]
     x2, y2 = point_positions[line1[1]]
     x3, y3 = point_positions[line2[0]]

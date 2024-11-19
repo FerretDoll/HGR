@@ -750,6 +750,7 @@ class GraphSolver:
         if len(equations) > 0:
             self.is_updated = True
             equations = list(set(equations))
+            self.remove_solved_equations(equations)
             self.model_instance_eq_num[2] += len(equations)
             logger.debug(f"Equations Added from Model ({len(equations)}):\n{equations}")
             self.model_equations.extend(equations)
