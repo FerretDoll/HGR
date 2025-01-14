@@ -25,7 +25,7 @@ from agent.model.graphtransformer.model_args import ModelArgs
 from reasoner import config
 from reasoner.config import train_logger
 from reasoner.graph_matching import load_models_from_json, get_model
-from tool.run_HGR import get_graph_solver
+from tool.run_HGR import get_graph_solver_from_id
 
 worker_num = 4
 output_path = 'saves/RL'
@@ -308,7 +308,7 @@ def generate_state(graph_solver):
 
 def solve_with_question(q_id, model, max_steps=10, eps=0.1):
     try:
-        graph_solver, target = get_graph_solver(q_id)
+        graph_solver, target = get_graph_solver_from_id(q_id)
         graph_solver.init_solve()
 
         if graph_solver.answer is not None:
@@ -343,7 +343,7 @@ def solve_with_timeout(q_id, model, timeout=120):
 
 def solve_with_question_random(q_id, max_steps=10):
     try:
-        graph_solver, target = get_graph_solver(q_id)
+        graph_solver, target = get_graph_solver_from_id(q_id)
         graph_solver.init_solve()
 
         if len(graph_solver.target_node_values) > 0:
@@ -359,7 +359,7 @@ def solve_with_question_random(q_id, max_steps=10):
 
 def solve_with_question_model_sequence(q_id):
     try:
-        graph_solver, target = get_graph_solver(q_id)
+        graph_solver, target = get_graph_solver_from_id(q_id)
         graph_solver.init_solve()
 
         if len(graph_solver.target_node_values) > 0:

@@ -54,11 +54,17 @@ def get_global_graph(parser, target, draw_graph=False):
     return GlobalHologram.from_dict(graph_dict)
 
 
-def get_graph_solver(q_id):
-    logic_forms = get_logic_forms(q_id)
+def get_graph_solver_from_logic_forms(logic_forms):
     parser, target = Text2Logic(logic_forms)
     global_graph = get_global_graph(parser, target)
     graph_solver = GraphSolver(global_graph)
+
+    return graph_solver, target
+
+
+def get_graph_solver_from_id(q_id):
+    logic_forms = get_logic_forms(q_id)
+    graph_solver, target = get_graph_solver_from_logic_forms(logic_forms)
 
     return graph_solver, target
 
@@ -78,7 +84,7 @@ def solve_with_model_sequence(q_id, model_id_list, record=False):
         candidate_value_list = data['precise_value']
         gt_id = ord(data['answer']) - 65  # Convert A-D to 0-3
 
-        graph_solver, target = get_graph_solver(q_id)
+        graph_solver, target = get_graph_solver_from_id(q_id)
         models = []
         for model_id in model_id_list:
             model = get_model(model_pool, model_id_map, model_id)
@@ -126,7 +132,7 @@ def solve_question(q_id, record=False):
         candidate_value_list = data['precise_value']
         gt_id = ord(data['answer']) - 65  # Convert A-D to 0-3
 
-        graph_solver, target = get_graph_solver(q_id)
+        graph_solver, target = get_graph_solver_from_id(q_id)
         # graph_solver.solve()
         graph_solver.solve_with_candi_models()
         logger.debug("Total Rounds: %s", graph_solver.rounds)
@@ -161,6 +167,36 @@ def solve_question(q_id, record=False):
     del graph_solver
     del target
     del candidate_value_list
+    gc.collect()
+
+    return res
+
+
+def solve_question_from_logic_forms(logic_forms):
+    res = {"target": None, "answer": None, "reasoning_record": None, "time": None}
+    s_time = time.time()
+    try:
+        graph_solver, target = get_graph_solver_from_logic_forms(logic_forms)
+        # graph_solver.solve()
+        graph_solver.solve_with_candi_models()
+        logger.debug("Total Rounds: %s", graph_solver.rounds)
+        logger.debug("Target Node Value(s): %s", graph_solver.target_node_values)
+        if len(graph_solver.target_node_values) > 0:
+            target_node_values_float = [{key: N(value)} for d in graph_solver.target_node_values for
+                                        key, value in d.items()]
+            logger.debug("Target Node Value(s) (Float): %s", target_node_values_float)
+
+        res["reasoning_record"] = graph_solver.reasoning_record
+        res["target"] = target
+        res["answer"] = str(graph_solver.answer)
+        res['time'] = str(time.time() - s_time)
+    except Exception as e:
+        res['time'] = str(time.time() - s_time)
+        return res
+
+    # Clean up resources
+    del graph_solver
+    del target
     gc.collect()
 
     return res

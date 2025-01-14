@@ -13,3 +13,4 @@ torch
 Cython
 pillow
 streamlit
+pymysql

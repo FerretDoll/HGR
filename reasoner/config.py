@@ -10,7 +10,7 @@ os.makedirs(output_dir, exist_ok=True)
 
 max_workers = 4
 
-os.environ['ENVIRONMENT'] = 'production'
+# os.environ['ENVIRONMENT'] = 'production'
 # 创建日志记录器
 logger = logging.getLogger('my_logger')
 

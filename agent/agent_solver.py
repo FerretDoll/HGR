@@ -13,7 +13,7 @@ from agent.model.graphtransformer.model_args import ModelArgs
 from reasoner import config
 from reasoner.config import eval_logger
 from reasoner.graph_matching import load_models_from_json, get_model
-from tool.run_HGR import get_graph_solver, check_transformed_answer
+from tool.run_HGR import get_graph_solver_from_id, check_transformed_answer
 
 EPSILON = 1e-5
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -155,7 +155,7 @@ class AgentSolver:
         candidate_value_list = data['precise_value']
         gt_id = ord(data['answer']) - 65  # Convert A-D to 0-3
 
-        graph_solver, target = get_graph_solver(q_id)
+        graph_solver, target = get_graph_solver_from_id(q_id)
         res["target"] = target
         graph_solver.init_solve()
 
