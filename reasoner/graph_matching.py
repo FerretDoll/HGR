@@ -94,18 +94,11 @@ def load_models_from_json(json_data):
 
 
 def get_model(model_pool, model_id_map, model_id):
-    if model_id in model_id_map:
+    if model_id in model_id_map.values():
         for k, v in model_id_map.items():
             if v == model_id:
                 return model_pool[k]
     return None
-
-
-# TODO Change get_model() in the next training
-# def get_model(model_pool, model_id_map, model_id):
-#     if model_id in model_id_map:
-#         return model_pool[model_id_map[model_id]]
-#     return None
 
 
 def get_candidate_models_from_pool(model_pool, global_graph):

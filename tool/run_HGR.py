@@ -63,9 +63,13 @@ def get_graph_solver(q_id):
     return graph_solver, target
 
 
-def solve_with_model_sequence(q_id, model_id_list):
-    res = {"id": q_id, "target": None, "answer": None, "step_lst": None, "model_instance_eq_num": None,
-           "correctness": "no", "time": None}
+def solve_with_model_sequence(q_id, model_id_list, record=False):
+    if record:
+        res = {"id": q_id, "target": None, "answer": None, "step_lst": None, "model_instance_eq_num": None,
+               "reasoning_record": None, "correctness": "no", "time": None}
+    else:
+        res = {"id": q_id, "target": None, "answer": None, "step_lst": None, "model_instance_eq_num": None,
+               "correctness": "no", "time": None}
     s_time = time.time()
     try:
         data_path = os.path.join(config.db_dir_single, str(q_id), "data.json")
@@ -88,6 +92,8 @@ def solve_with_model_sequence(q_id, model_id_list):
         answer = graph_solver.answer
 
         res["step_lst"] = graph_solver.matched_model_list
+        if record:
+            res["reasoning_record"] = graph_solver.reasoning_record
         res["model_instance_eq_num"] = graph_solver.model_instance_eq_num
         correctness, answer = check_transformed_answer(answer, candidate_value_list, gt_id)
         if correctness:
@@ -105,9 +111,13 @@ def solve_with_model_sequence(q_id, model_id_list):
     return res
 
 
-def solve_question(q_id):
-    res = {"id": str(q_id), "target": None, "answer": None, "step_lst": None, "model_instance_eq_num": None,
-           "correctness": "no", "time": None}
+def solve_question(q_id, record=False):
+    if record:
+        res = {"id": q_id, "target": None, "answer": None, "step_lst": None, "model_instance_eq_num": None,
+               "reasoning_record": None, "correctness": "no", "time": None}
+    else:
+        res = {"id": q_id, "target": None, "answer": None, "step_lst": None, "model_instance_eq_num": None,
+               "correctness": "no", "time": None}
     s_time = time.time()
     try:
         data_path = os.path.join(config.db_dir_single, str(q_id), "data.json")
@@ -128,6 +138,8 @@ def solve_question(q_id):
         answer = graph_solver.answer
 
         res["step_lst"] = graph_solver.matched_model_list
+        if record:
+            res["reasoning_record"] = graph_solver.reasoning_record
         res["model_instance_eq_num"] = graph_solver.model_instance_eq_num
         if answer is not None:
             correctness, transformed_answer = check_transformed_answer(answer, candidate_value_list, gt_id)
@@ -343,7 +355,7 @@ if __name__ == "__main__":
     # evaluate_all_questions(2401, 3001)
 
     try:
-        q_id = 2583
+        q_id = 4
 
         # Test and answer single questions
         test_one_question(q_id)
@@ -354,7 +366,7 @@ if __name__ == "__main__":
         # Draw a global map
         # test_draw_global_graph(q_id)
 
-        # test_solve_with_model_sequence(q_id, [5, 14])
+        # test_solve_with_model_sequence(q_id, [26, 13])
     except argparse.ArgumentError:
         logger.error("Error: question id is required")
         sys.exit(1)

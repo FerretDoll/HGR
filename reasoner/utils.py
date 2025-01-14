@@ -6,6 +6,8 @@ import plotly.graph_objects as go
 from matplotlib.patches import ConnectionPatch
 from itertools import groupby
 
+from sympy import Eq
+
 from reasoner.config import NODE_TYPE_TO_INT, EDGE_TYPE_TO_INT
 
 
@@ -399,3 +401,15 @@ def draw_graph_from_gml(gml_data):
                         yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)))
 
     fig.show()
+
+
+def eq_to_str(equation):
+    """
+    Convert Sympy Eq object (or its list) to the string form of "lhs=rhs".
+    """
+    if isinstance(equation, Eq):
+        return f"{str(equation.lhs)} = {str(equation.rhs)}"
+    elif isinstance(equation, (list, tuple)):
+        return [eq_to_str(eq) for eq in equation]
+    else:
+        raise TypeError("Only able to handle Sympy Eq or a list/tuple containing Eq")

@@ -9,7 +9,7 @@ from sympy import symbols, Eq, sympify, cos, sin, pi, solve, tan, parse_expr, Mu
 from reasoner.graph_matching import get_candidate_models_from_pool, match_graphs, apply_mapping_to_actions, \
     apply_mapping_to_equations, load_models_from_json, replace_variables_equation
 from reasoner.config import UPPER_BOUND, logger, max_workers, model_pool_path
-from reasoner.utils import is_debugging
+from reasoner.utils import is_debugging, eq_to_str
 from utils.common_utils import isNumber, closest_to_number
 
 with open(model_pool_path, 'r') as model_pool_file:
@@ -659,11 +659,12 @@ class GraphSolver:
                 if len(model.equations) > 0:
                     mapped_equations = apply_mapping_to_equations(model, mapping_dict, self.symbols)
                     new_equations.extend(mapped_equations)
-                    instance_info['equations'] = mapped_equations
+                    instance_info['equations'] = eq_to_str(mapped_equations)
                 if len(model.actions) > 0 or len(model.equations) > 0:
                     instances.append(instance_info)
 
-        self.reasoning_record.append({'model_name': model.model_name, 'instances': instances})
+        if len(instances) > 0:
+            self.reasoning_record.append({'model_name': model.model_name, 'instances': instances})
 
         return new_actions, new_equations
 
